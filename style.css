@@ -26,3 +26,23 @@ p {
   font-size: 1.2rem;
   color: #a89a3e;
 }
+
+.mood-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 15px;
+  justify-content: center;
+  margin-top: 40px;
+}
+
+.mood-btn {
+  background-color: transparent;
+  color: #f5c518;
+  border: 2px solid #f5c518;
+  border-radius: 50px;
+  padding: 12px 28px;
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 1.2rem;
+  letter-spacing: 2px;
+  cursor: pointer;
+}
