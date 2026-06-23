@@ -4,20 +4,81 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>WatchYourMood</title>
-    <link rel="stylesheet" href="style.css" />
     <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="style.css" />
   </head>
   <body>
-    <h1>What's the vibe tonight?</h1>
-    <p>Tell us your mood and we'll find something to watch.</p>
 
-    <div class="mood-container" >
-        <button class="mood-btn">Funny</button>
-        <button class="mood-btn">Chill</button>
-        <button class="mood-btn">Intense</button>
-        <button class="mood-btn">Horror</button>
-        <button class="mood-btn">Mindless</button>
-        <button class="mood-btn">Emotional</button>
+    
+    <div class="top-nav">
+      <div class="surprise-wrapper">
+       <button class="surprise-btn">Surprise Me</button>
+        <span class="tooltip">Not in a mood to choose? Let us pick for you</span>
+      </div>
+      <div class="search-wrapper">
+  <input type="text" class="search-input" placeholder="Search by Star 🔍" />
+</div>
     </div>
+
+    <div class="divider"></div>
+
+    <div class="main-content">
+
+      <div class="step" id="step-1">
+        <h1>What's the vibe tonight?</h1>
+        <p>Tell us your mood and we'll find something to watch.</p>
+        <div class="mood-container">
+          <button class="mood-btn" data-mood="funny">Funny</button>
+          <button class="mood-btn" data-mood="emotional">Emotional</button>
+          <button class="mood-btn" data-mood="intense">Intense</button>
+          <button class="mood-btn" data-mood="chill">Chill</button>
+          <button class="mood-btn" data-mood="horror">Horror</button>
+          <button class="mood-btn" data-mood="mindless">Mindless</button>
+        </div>
+      </div>
+
+      <div class="step hidden" id="step-2">
+        <h1>Movie or Series?</h1>
+        <p>What are you in the mood for?</p>
+        <div class="mood-container">
+          <button class="mood-btn" data-type="movie">Movie</button>
+          <button class="mood-btn" data-type="series">Series</button>
+          <button class="mood-btn" data-type="any">Any</button>
+        </div>
+      </div>
+
+      <div class="step hidden" id="step-3">
+        <h1>Pick a Language</h1>
+        <p>Any preference?</p>
+        <div class="mood-container">
+          <button class="mood-btn" data-lang="en">English</button>
+          <button class="mood-btn" data-lang="hi">Hindi</button>
+          <button class="mood-btn" data-lang="te">Telugu</button>
+          <button class="mood-btn" data-lang="ta">Tamil</button>
+          <button class="mood-btn" data-lang="kn">Kannada</button>
+          <button class="mood-btn" data-lang="ko">Korean</button>
+          <button class="mood-btn" data-lang="any">Any</button>
+        </div>
+      </div>
+
+      <div class="step hidden" id="step-4">
+        <h1>Which Era?</h1>
+        <p>Old classics or fresh releases?</p>
+        <div class="mood-container">
+          <button class="mood-btn" data-era="classic">Classic</button>
+          <button class="mood-btn" data-era="2000s">2000s</button>
+          <button class="mood-btn" data-era="2010s">2010s</button>
+          <button class="mood-btn" data-era="recent">Recent</button>
+          <button class="mood-btn" data-era="any">Any</button>
+        </div>
+      </div>
+
+      <div class="step hidden" id="results">
+        <h1>Here's what to watch</h1>
+        <div class="results-container"></div>
+      </div>
+
+    </div>
+
   </body>
 </html>
