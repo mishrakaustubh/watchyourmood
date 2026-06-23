@@ -148,3 +148,32 @@ p {
   background-color: #f5c518;
   color: #0d0d0d;
 }
+
+.results-container {
+  display: flex;
+  gap: 30px;
+  justify-content: center;
+  margin-top: 40px;
+  flex-wrap: wrap;
+}
+
+.movie-card {
+  width: 200px;
+  cursor: pointer;
+  text-align: center;
+}
+
+.movie-card img {
+  width: 100%;
+  border-radius: 10px;
+}
+
+.movie-card h2 {
+  margin-top: 10px;
+  font-size: 1rem;
+}
+
+.movie-card p {
+  color: #a89a3e;
+  font-size: 0.9rem;
+}
