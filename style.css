@@ -138,3 +138,13 @@ p {
 .search-input::placeholder {
   color: #a89a3e;
 }
+
+.mood-btn:hover {
+  background-color: #f5c518;
+  color: #0d0d0d;
+}
+
+.surprise-btn:hover {
+  background-color: #f5c518;
+  color: #0d0d0d;
+}
