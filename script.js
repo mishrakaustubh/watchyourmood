@@ -1,10 +1,9 @@
 const GENRE_MAP = {
-  funny: [35],
-  emotional: [18, 10749],
-  intense: [53, 80, 9648],
-  chill: [10749, 35, 10764],
-  horror: [27, 9648],
-  mindless: [35, 10770]
+  funny: [35, 14, 10770, 10762],
+  emotional: [99, 18, 10749, 10751],
+  intense: [28, 12, 80, 53, 10752, 10759, 9648, 10768, 878],
+  chill: [16, 14, 10766, 10767, 10749, 10751],
+  horror: [27, 9648]
 };
 
 const ERA_MAP = {
@@ -58,16 +57,40 @@ document.querySelectorAll('.mood-btn[data-era]').forEach(btn => {
 });
 
 async function fetchMovies() {
-  const genres = GENRE_MAP[userSelection.mood].join(',');
+  const genres = GENRE_MAP[userSelection.mood].join('|');
   const era = ERA_MAP[userSelection.era];
   const language = userSelection.language === 'any' ? '' : `&with_original_language=${userSelection.language}`;
   const mediaType = userSelection.type === 'series' ? 'tv' : 'movie';
 
-  const url = `https://api.themoviedb.org/3/discover/${mediaType}?api_key=${API_KEY}&with_genres=${genres}&primary_release_date.gte=${era.gte}&primary_release_date.lte=${era.lte}&sort_by=vote_average.desc&vote_count.gte=100${language}`;
+  const sortMethods = ['popularity.desc', 'vote_average.desc', 'revenue.desc', 'release_date.desc'];
 
-  const res = await fetch(url);
-  const data = await res.json();
-  return data.results.slice(0, 3);
+  const sort1 = sortMethods[Math.floor(Math.random() * sortMethods.length)];
+  let sort2 = sortMethods[Math.floor(Math.random() * sortMethods.length)];
+  while (sort2 === sort1) {
+    sort2 = sortMethods[Math.floor(Math.random() * sortMethods.length)];
+  }
+
+  const baseParams = `api_key=${API_KEY}&with_genres=${genres}&primary_release_date.gte=${era.gte}&primary_release_date.lte=${era.lte}${language}`;
+
+  const underratedUrl = `https://api.themoviedb.org/3/discover/${mediaType}?${baseParams}&vote_average.gte=7&vote_count.gte=50&vote_count.lte=10000&popularity.lte=100&sort_by=vote_average.desc`;
+  const popularUrl1 = `https://api.themoviedb.org/3/discover/${mediaType}?${baseParams}&sort_by=${sort1}`;
+  const popularUrl2 = `https://api.themoviedb.org/3/discover/${mediaType}?${baseParams}&sort_by=${sort2}`;
+
+  const [underratedData, popularData1, popularData2] = await Promise.all([
+    fetch(underratedUrl).then(r => r.json()),
+    fetch(popularUrl1).then(r => r.json()),
+    fetch(popularUrl2).then(r => r.json())
+  ]);
+
+  console.log('underrated:', underratedData.results?.length);
+  console.log('popular1:', popularData1.results?.length);
+  console.log('popular2:', popularData2.results?.length);
+
+  const underrated = underratedData.results?.sort(() => Math.random() - 0.5)[0];
+  const popular1 = popularData1.results?.sort(() => Math.random() - 0.5)[0];
+  const popular2 = popularData2.results?.sort(() => Math.random() - 0.5)[0];
+
+  return [underrated, popular1, popular2].filter(Boolean);
 }
 
 function displayMovies(movies) {
