@@ -21,10 +21,12 @@
     </div>
 
     <div class="divider"></div>
-
+    
     <div class="main-content">
 
+
       <div class="step" id="step-1">
+        <span class="progress-text">1/4 — MOOD</span>
         <h1>What's the vibe tonight?</h1>
         <p>Tell us your mood and we'll find something to watch.</p>
         <div class="mood-container">
@@ -37,6 +39,7 @@
       </div>
 
       <div class="step hidden" id="step-2">
+        <span class="progress-text">2/4 — TYPE</span>
         <h1>Movie or Series?</h1>
         <p>What are you in the mood for?</p>
         <div class="mood-container">
@@ -44,9 +47,11 @@
           <button class="mood-btn" data-type="series">Series</button>
           <button class="mood-btn" data-type="any">Any</button>
         </div>
+        <button class="back-btn" data-target="step-1">← Back</button>
       </div>
 
       <div class="step hidden" id="step-3">
+        <span class="progress-text">3/4 — LANGUAGE</span>
         <h1>Pick a Language</h1>
         <p>Any preference?</p>
         <div class="mood-container">
@@ -58,9 +63,11 @@
           <button class="mood-btn" data-lang="ko">Korean</button>
           <button class="mood-btn" data-lang="any">Any</button>
         </div>
+        <button class="back-btn" data-target="step-2">← Back</button>
       </div>
 
       <div class="step hidden" id="step-4">
+        <span class="progress-text">4/4 — ERA</span>
         <h1>Which Era?</h1>
         <p>Old classics or fresh releases?</p>
         <div class="mood-container">
@@ -70,12 +77,18 @@
           <button class="mood-btn" data-era="recent">Recent</button>
           <button class="mood-btn" data-era="any">Any</button>
         </div>
+        <button class="back-btn" data-target="step-3">← Back</button>
       </div>
 
       <div class="step hidden" id="results">
         <h1>Here's what to watch</h1>
         <div class="results-container"></div>
+        <div class="retry-section hidden" id="retry-section">
+    <p class="surprise-text">Didn't like the results?</p>
+    <button class="retry-btn">Retry</button>
+  </div>
       </div>
+
 
     </div>
     <script src="config.js"></script>
