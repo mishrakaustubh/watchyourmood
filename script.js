@@ -1,5 +1,5 @@
 const GENRE_MAP = {
-  funny: [35, 14, 10770, 10762],
+  funny: [35, 10770, 10762],
   emotional: [99, 18, 10749, 10751],
   intense: [28, 12, 80, 53, 10752, 10759, 9648, 10768, 878],
   chill: [16, 14, 10766, 10767, 10749, 10751],
@@ -25,11 +25,11 @@ const ERA_MAP = {
 };
 
 const PLATFORM_COLORS = {
-  'Netflix': { bg: '#8b0000', text: '#ffffff', border: '#e50914' },
-  'Prime': { bg: '#003366', text: '#00d4ff', border: '#00a8e0' },
-  'Jio+Hotstar': { bg: '#1a0050', text: '#a78bfa', border: '#7c3aed' },
-  'Zee5': { bg: '#1a0033', text: '#c084fc', border: '#6b21a8' },
-  'SonyLIV': { bg: '#4a1000', text: '#ff8c42', border: '#e85d04' }
+  'Netflix': { bg: '#141414', text: '#ffffff', border: '#e50914' },
+  'Prime': { bg: '#0f172a', text: '#f5f5f7', border: '#00a8e1' },
+  'Jio+Hotstar': { bg: '#0c111b', text: '#ffffff', border: '#1f80e0' },
+  'Zee5': { bg: '#0f0617', text: '#ffffff', border: '#82308e' },
+  'SonyLIV': { bg: '#161616', text: '#ffffff', border: '#d1a153' }
 };
 
 const userSelection = {
@@ -85,29 +85,59 @@ async function fetchMovies() {
   const language = userSelection.language === 'any' ? '' : `&with_original_language=${userSelection.language}`;
   const mediaType = userSelection.type === 'series' ? 'tv' : 'movie';
 
-  const providers = '8|119|122|232|237';
-  const baseParams = `api_key=${API_KEY}&with_genres=${genres}&primary_release_date.gte=${era.gte}&primary_release_date.lte=${era.lte}${language}&watch_region=IN&with_watch_providers=${providers}`;
+  const providerList = ['8', '119', '122', '232', '237'];
+  const shuffledProviders = [...providerList].sort(() => Math.random() - 0.5);
+  const fallbackProviders = '8|119|122|232|237';
 
+  const page = Math.floor(Math.random() * 3) + 1;
   const sortMethods = ['popularity.desc', 'vote_average.desc', 'revenue.desc', 'release_date.desc'];
   const sort1 = sortMethods[Math.floor(Math.random() * sortMethods.length)];
   let sort2 = sortMethods[Math.floor(Math.random() * sortMethods.length)];
   while (sort2 === sort1) sort2 = sortMethods[Math.floor(Math.random() * sortMethods.length)];
 
-  const underratedUrl = `https://api.themoviedb.org/3/discover/${mediaType}?${baseParams}&vote_average.gte=7&vote_count.gte=50&vote_count.lte=10000&popularity.lte=100&sort_by=vote_average.desc`;
-  const popularUrl1 = `https://api.themoviedb.org/3/discover/${mediaType}?${baseParams}&sort_by=${sort1}`;
-  const popularUrl2 = `https://api.themoviedb.org/3/discover/${mediaType}?${baseParams}&sort_by=${sort2}`;
+  function buildUrl(providers, sortBy, extra = '') {
+    return `https://api.themoviedb.org/3/discover/${mediaType}?api_key=${API_KEY}&with_genres=${genres}&primary_release_date.gte=${era.gte}&primary_release_date.lte=${era.lte}${language}&watch_region=IN&with_watch_providers=${providers}&sort_by=${sortBy}&page=${page}${extra}`;
+  }
 
-  const [underratedData, popularData1, popularData2] = await Promise.all([
-    fetch(underratedUrl).then(r => r.json()),
-    fetch(popularUrl1).then(r => r.json()),
-    fetch(popularUrl2).then(r => r.json())
+  const [d1, d2, d3] = await Promise.all([
+    fetch(buildUrl(shuffledProviders[0], 'vote_average.desc', '&vote_average.gte=7&vote_count.gte=50&vote_count.lte=10000&popularity.lte=100')).then(r => r.json()),
+    fetch(buildUrl(shuffledProviders[1], sort1)).then(r => r.json()),
+    fetch(buildUrl(shuffledProviders[2], sort2)).then(r => r.json()),
   ]);
 
-  const underrated = underratedData.results?.sort(() => Math.random() - 0.5)[0];
-  const popular1 = popularData1.results?.sort(() => Math.random() - 0.5)[0];
-  const popular2 = popularData2.results?.sort(() => Math.random() - 0.5)[0];
+  async function getFallback(sortBy, extra = '') {
+    const res = await fetch(buildUrl(fallbackProviders, sortBy, extra));
+    return res.json();
+  }
 
-  return [underrated, popular1, popular2].filter(Boolean);
+  const underratedRaw = d1.results?.length ? d1 : await getFallback('vote_average.desc', '&vote_average.gte=7&vote_count.gte=50&vote_count.lte=10000&popularity.lte=100');
+  const popular1Raw = d2.results?.length ? d2 : await getFallback(sort1);
+  const popular2Raw = d3.results?.length ? d3 : await getFallback(sort2);
+
+  const underrated = underratedRaw.results?.sort(() => Math.random() - 0.5)[0];
+  const popular1 = popular1Raw.results?.sort(() => Math.random() - 0.5)[0];
+  const popular2 = popular2Raw.results?.sort(() => Math.random() - 0.5)[0];
+
+  const seen = new Set();
+  const results = [underrated, popular1, popular2].filter(movie => {
+    if (!movie || seen.has(movie.id)) return false;
+    seen.add(movie.id);
+    return true;
+  });
+
+  if (results.length < 3) {
+    const extraData = await getFallback(sort1);
+    const extras = extraData.results?.sort(() => Math.random() - 0.5) || [];
+    for (const movie of extras) {
+      if (results.length >= 3) break;
+      if (!seen.has(movie.id)) {
+        seen.add(movie.id);
+        results.push(movie);
+      }
+    }
+  }
+
+  return results;
 }
 
 async function displayMovies(movies) {
