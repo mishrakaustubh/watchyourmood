@@ -2,7 +2,7 @@ const GENRE_MAP = {
   funny: [35, 10770, 10762],
   emotional: [99, 18, 10749, 10751],
   intense: [28, 12, 80, 53, 10752, 10759, 9648, 10768, 878],
-  chill: [16, 14, 10766, 10767, 10749, 10751],
+  chill: [16, 14, 10765, 10767, 10749, 10751],
   horror: [27, 9648]
 };
 
@@ -25,11 +25,11 @@ const ERA_MAP = {
 };
 
 const PLATFORM_COLORS = {
-  'Netflix': { bg: '#141414', text: '#ffffff', border: '#e50914' },
-  'Prime': { bg: '#0f172a', text: '#f5f5f7', border: '#00a8e1' },
-  'Jio+Hotstar': { bg: '#0c111b', text: '#ffffff', border: '#1f80e0' },
-  'Zee5': { bg: '#0f0617', text: '#ffffff', border: '#82308e' },
-  'SonyLIV': { bg: '#161616', text: '#ffffff', border: '#d1a153' }
+  'Netflix': { bg: 'linear-gradient(160deg, #1a1a1a 40%, #e50914 100%)', text: '#ffffff', border: '#e50914' },
+  'Prime': { bg: 'linear-gradient(135deg, #003580 0%, #00a8e0 100%)', text: '#ffffff', border: '#00a8e0' },
+  'JioHotstar': { bg: 'linear-gradient(135deg, #0033cc 0%, #e20074 100%)', text: '#ffffff', border: '#e20074' },
+  'Zee5': { bg: 'linear-gradient(135deg, #3b0072 0%, #6b21a8 100%)', text: '#e9d5ff', border: '#a855f7' },
+  'SonyLIV': { bg: 'linear-gradient(135deg, #1a0000 0%, #8b2500 100%)', text: '#ff8c42', border: '#e85d04' }
 };
 
 const userSelection = {
@@ -42,14 +42,12 @@ const userSelection = {
 function showStep(stepId) {
   document.querySelectorAll('.step').forEach(step => step.classList.add('hidden'));
   document.getElementById(stepId).classList.remove('hidden');
-  document.getElementById('progress-bar').style.display = stepId === 'results' ? 'none' : 'flex';
 }
 
 document.querySelectorAll('.mood-btn[data-mood]').forEach(btn => {
   btn.addEventListener('click', () => {
     userSelection.mood = btn.dataset.mood;
     showStep('step-2');
-    updateProgress(1);
   });
 });
 
@@ -57,7 +55,6 @@ document.querySelectorAll('.mood-btn[data-type]').forEach(btn => {
   btn.addEventListener('click', () => {
     userSelection.type = btn.dataset.type;
     showStep('step-3');
-    updateProgress(2);
   });
 });
 
@@ -65,17 +62,21 @@ document.querySelectorAll('.mood-btn[data-lang]').forEach(btn => {
   btn.addEventListener('click', () => {
     userSelection.language = btn.dataset.lang;
     showStep('step-4');
-    updateProgress(3);
   });
 });
 
 document.querySelectorAll('.mood-btn[data-era]').forEach(btn => {
   btn.addEventListener('click', async () => {
     userSelection.era = btn.dataset.era;
+    showStep('results');
+    document.querySelector('#results h1').textContent = 'Searching the best...';
+document.querySelector('.results-container').innerHTML = `
+  <div class="skeleton-card"></div>
+  <div class="skeleton-card"></div>
+  <div class="skeleton-card"></div>
+`;
     const movies = await fetchMovies();
     displayMovies(movies);
-    showStep('results');
-    updateProgress(4);
   });
 });
 
@@ -142,7 +143,6 @@ async function fetchMovies() {
 
 async function displayMovies(movies) {
   const container = document.querySelector('.results-container');
-  container.innerHTML = '<p class="loading-text">Curating your watchlist...</p>';
   const mediaType = userSelection.type === 'series' ? 'tv' : 'movie';
 
   const cards = [];
@@ -153,19 +153,30 @@ async function displayMovies(movies) {
 
     const card = document.createElement('div');
     card.classList.add('movie-card');
-    card.style.backgroundColor = colors.bg;
+    if (colors.bg.includes('gradient')) {
+  card.style.background = colors.bg;
+} else {
+  card.style.backgroundColor = colors.bg;
+}
     card.style.borderColor = colors.border;
     card.style.color = colors.text;
+    card.style.setProperty('--glow-color', colors.border);
 
     card.innerHTML = `
-      <img src="https://image.tmdb.org/t/p/w500${movie.poster_path}" alt="${movie.title || movie.name}" />
-      <div class="card-info">
-        <h2>${movie.title || movie.name}</h2>
-        <p class="card-genre">${movie.genre_ids.slice(0,2).map(id => GENRE_NAMES[id] || '').join(', ')}</p>
-        <p class="card-rating">${movie.vote_average.toFixed(1)} ⭐</p>
-        <span class="platform-badge">${platform}</span>
-      </div>
-    `;
+  <img 
+    src="https://image.tmdb.org/t/p/w500${movie.poster_path}" 
+    alt="${movie.title || movie.name}"
+    loading="lazy"
+    style="opacity:0; transition: opacity 0.4s ease;"
+    onload="this.style.opacity='1'"
+  />
+  <div class="card-info">
+    <h2>${movie.title || movie.name}</h2>
+    <p class="card-genre">${movie.genre_ids.slice(0,2).map(id => GENRE_NAMES[id] || '').join(', ')}</p>
+    <p class="card-rating">${movie.vote_average.toFixed(1)} ⭐</p>
+    <span class="platform-badge">${platform}</span>
+  </div>
+`;
 
     card.addEventListener('click', () => openMoviePage(movie, platform, colors, mediaType));
     cards.push(card);
@@ -173,8 +184,23 @@ async function displayMovies(movies) {
 
   await new Promise(resolve => setTimeout(resolve, 800));
   container.innerHTML = '';
-  cards.forEach(card => container.appendChild(card));
-  document.getElementById('retry-section').classList.remove('hidden');
+  document.querySelector('#results h1').textContent = "Here's what to watch";
+  cards.forEach((card, index) => {
+    card.style.opacity = '0';
+    card.style.transform = 'translateY(30px)';
+    card.style.transition = `opacity 0.4s ease ${index * 0.15}s, transform 0.4s ease ${index * 0.15}s`;
+    container.appendChild(card);
+    setTimeout(() => {
+      card.style.opacity = '1';
+      card.style.transform = 'translateY(0)';
+    }, 50);
+  });
+
+  setTimeout(() => {
+    document.getElementById('retry-section').classList.remove('hidden');
+    document.getElementById('retry-section').style.animation = 'fadeInUp 0.4s ease forwards';
+    document.getElementById('retry-section').scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }, cards.length * 150 + 400);
 }
 
 async function getStreamingPlatform(movieId, mediaType) {
@@ -187,7 +213,7 @@ async function getStreamingPlatform(movieId, mediaType) {
   const name = available[0].provider_name;
   if (name.includes('Netflix')) return 'Netflix';
   if (name.includes('Prime')) return 'Prime';
-  if (name.includes('Hotstar') || name.includes('Disney') || name.includes('Jio')) return 'Jio+Hotstar';
+  if (name.includes('Hotstar') || name.includes('Disney') || name.includes('Jio')) return 'JioHotstar';
   if (name.includes('Zee5') || name.includes('ZEE5')) return 'Zee5';
   if (name.includes('Sony')) return 'SonyLIV';
   return 'Prime';
@@ -195,6 +221,12 @@ async function getStreamingPlatform(movieId, mediaType) {
 
 document.querySelector('.retry-btn').addEventListener('click', async () => {
   document.getElementById('retry-section').classList.add('hidden');
+  document.querySelector('#results h1').textContent = 'Searching the best...';
+  document.querySelector('.results-container').innerHTML = `
+    <div class="skeleton-card"></div>
+    <div class="skeleton-card"></div>
+    <div class="skeleton-card"></div>
+  `;
   const movies = await fetchMovies();
   displayMovies(movies);
 });
@@ -204,3 +236,94 @@ document.querySelectorAll('.back-btn').forEach(btn => {
     showStep(btn.dataset.target);
   });
 });
+
+async function openMoviePage(movie, platform, colors, mediaType) {
+  const page = document.getElementById('movie-page');
+  page.style.background = '';
+page.style.backgroundColor = '';
+
+if (colors.bg.includes('gradient')) {
+  page.style.background = colors.bg;
+} else {
+  page.style.backgroundColor = colors.bg;
+}
+  page.style.color = colors.text;
+  page.style.setProperty('--page-bg', colors.bg);
+
+  document.getElementById('movie-poster').src = `https://image.tmdb.org/t/p/w300${movie.poster_path}`;
+  document.getElementById('movie-title').textContent = movie.title || movie.name;
+  document.getElementById('movie-rating').textContent = `${movie.vote_average.toFixed(1)} ⭐ — ${platform}`;
+  document.getElementById('movie-plot').textContent = movie.overview || 'No description available.';
+  document.getElementById('movie-genres').textContent = movie.genre_ids.map(id => GENRE_NAMES[id] || '').filter(Boolean).join(' · ');
+
+  if (movie.backdrop_path) {
+    document.getElementById('movie-backdrop').style.backgroundImage = `url(https://image.tmdb.org/t/p/original${movie.backdrop_path})`;
+  }
+
+  document.getElementById('movie-cast').innerHTML = '';
+  document.getElementById('movie-trailer').innerHTML = '';
+
+  page.classList.remove('hidden');
+  document.querySelector('.top-nav').style.display = 'none';
+  document.querySelector('.divider').style.display = 'none';
+
+  // Fetch cast and trailer
+  const [creditsRes, videosRes] = await Promise.all([
+    fetch(`https://api.themoviedb.org/3/${mediaType}/${movie.id}/credits?api_key=${API_KEY}`),
+    fetch(`https://api.themoviedb.org/3/${mediaType}/${movie.id}/videos?api_key=${API_KEY}`)
+  ]);
+
+  const creditsData = await creditsRes.json();
+  const videosData = await videosRes.json();
+
+  const cast = creditsData.cast?.slice(0, 6) || [];
+  document.getElementById('movie-cast').innerHTML = cast.map(actor =>
+    `<span class="cast-badge" style="border-color:${colors.border}">${actor.name}</span>`
+  ).join('');
+
+  const trailer = videosData.results?.find(v => v.type === 'Trailer' && v.site === 'YouTube');
+const imagesRes = await fetch(`https://api.themoviedb.org/3/${mediaType}/${movie.id}/images?api_key=${API_KEY}`);
+const imagesData = await imagesRes.json();
+const backdrops = imagesData.backdrops?.slice(0, 9) || [];
+
+let trailerHTML = '';
+if (trailer) {
+  trailerHTML = `<iframe src="https://www.youtube.com/embed/${trailer.key}" allowfullscreen></iframe>`;
+} else {
+  trailerHTML = `<p style="opacity:0.5; letter-spacing:2px; font-size:0.9rem;">NO TRAILER AVAILABLE</p>`;
+}
+
+let galleryHTML = '';
+if (backdrops.length > 0) {
+  galleryHTML = `
+  <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:20px;">
+    ${backdrops.map(img => `
+      <img 
+        src="https://image.tmdb.org/t/p/w500${img.file_path}"
+        style="width:calc(50% - 5px); border-radius:8px; opacity:0; transition:opacity 0.4s ease; cursor:pointer;"
+        onload="this.style.opacity='1'"
+        onclick="openLightbox('https://image.tmdb.org/t/p/original${img.file_path}')"
+      />
+    `).join('')}
+  </div>
+`;
+}
+
+document.getElementById('movie-trailer').innerHTML = trailerHTML + galleryHTML;
+}
+
+document.getElementById('movie-back-btn').addEventListener('click', () => {
+  document.getElementById('movie-page').classList.add('hidden');
+  document.querySelector('.top-nav').style.display = 'flex';
+  document.querySelector('.divider').style.display = 'block';
+  showStep('results');
+});
+
+function openLightbox(src) {
+  document.getElementById('lightbox-img').src = src;
+  document.getElementById('lightbox').classList.remove('hidden');
+}
+
+function closeLightbox() {
+  document.getElementById('lightbox').classList.add('hidden');
+}

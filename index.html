@@ -90,9 +90,33 @@
   </div>
       </div>
 
+      <div id="movie-page" class="hidden">
+  <button class="back-btn" id="movie-back-btn">← Back</button>
+  
+  <div id="movie-backdrop">
+    <div id="movie-hero">
+      <img id="movie-poster" src="" alt="" />
+      <div id="movie-info">
+        <p id="movie-genres"></p>
+        <h1 id="movie-title"></h1>
+        <p id="movie-rating"></p>
+        <p id="movie-plot"></p>
+      </div>
+    </div>
+  </div>
+
+  <div id="movie-details">
+    <div id="movie-cast"></div>
+    <div id="movie-trailer"></div>
+  </div>
+</div>
 
     </div>
     <script src="config.js"></script>
 <script src="script.js"></script>
+
+<div id="lightbox" class="hidden" onclick="closeLightbox()">
+  <img id="lightbox-img" src="" />
+</div>
   </body>
 </html>
