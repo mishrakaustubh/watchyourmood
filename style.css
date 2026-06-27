@@ -13,13 +13,6 @@ body {
   flex-direction: column;
 }
 
-/* TOP NAV */
-.top-nav {
-  display: flex;
-  justify-content: space-between;
-  padding: 20px 40px;
-}
-
 /* DIVIDER */
 .divider {
   width: 100%;
@@ -464,4 +457,46 @@ p {
 #movie-page p,
 #movie-page .cast-badge {
   color: inherit;
+}
+
+.anime-btn {
+  background-color: transparent;
+  color: #f5c518;
+  border: 2px solid #f5c518;
+  padding: 8px 20px;
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 1rem;
+  letter-spacing: 2px;
+  cursor: pointer;
+  border-radius: 50px;
+  transition: all 0.2s ease;
+}
+
+.anime-btn:hover {
+  background-color: #f5c518;
+  color: #0d0d0d;
+  transform: scale(1.05);
+}
+
+.top-nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 40px;
+}
+
+.left-nav {
+  display: flex;
+  gap: 15px;
+  align-items: center;
+}
+
+.anime-wrapper {
+  position: relative;
+  display: inline-block;
+}
+
+.anime-wrapper:hover .tooltip {
+  visibility: visible;
+  opacity: 1;
 }

@@ -81,7 +81,11 @@ document.querySelector('.results-container').innerHTML = `
 });
 
 async function fetchMovies() {
-  const genres = GENRE_MAP[userSelection.mood].join('|');
+  const genres = userSelection.animeMode 
+    ? '16' 
+    : GENRE_MAP[userSelection.mood].join('|');
+
+  const keywords = userSelection.animeMode ? '&with_keywords=210024' : '';
   const era = ERA_MAP[userSelection.era];
   const language = userSelection.language === 'any' ? '' : `&with_original_language=${userSelection.language}`;
   const mediaType = userSelection.type === 'series' ? 'tv' : 'movie';
@@ -97,48 +101,56 @@ async function fetchMovies() {
   while (sort2 === sort1) sort2 = sortMethods[Math.floor(Math.random() * sortMethods.length)];
 
   function buildUrl(providers, sortBy, extra = '') {
-    return `https://api.themoviedb.org/3/discover/${mediaType}?api_key=${API_KEY}&with_genres=${genres}&primary_release_date.gte=${era.gte}&primary_release_date.lte=${era.lte}${language}&watch_region=IN&with_watch_providers=${providers}&sort_by=${sortBy}&page=${page}${extra}`;
+    return `https://api.themoviedb.org/3/discover/${mediaType}?api_key=${API_KEY}&with_genres=${genres}&primary_release_date.gte=${era.gte}&primary_release_date.lte=${era.lte}${language}&watch_region=IN&with_watch_providers=${providers}&sort_by=${sortBy}&page=${page}${keywords}${extra}`;
   }
-
-  const [d1, d2, d3] = await Promise.all([
-    fetch(buildUrl(shuffledProviders[0], 'vote_average.desc', '&vote_average.gte=7&vote_count.gte=50&vote_count.lte=10000&popularity.lte=100')).then(r => r.json()),
-    fetch(buildUrl(shuffledProviders[1], sort1)).then(r => r.json()),
-    fetch(buildUrl(shuffledProviders[2], sort2)).then(r => r.json()),
-  ]);
 
   async function getFallback(sortBy, extra = '') {
     const res = await fetch(buildUrl(fallbackProviders, sortBy, extra));
     return res.json();
   }
 
-  const underratedRaw = d1.results?.length ? d1 : await getFallback('vote_average.desc', '&vote_average.gte=7&vote_count.gte=50&vote_count.lte=10000&popularity.lte=100');
-  const popular1Raw = d2.results?.length ? d2 : await getFallback(sort1);
-  const popular2Raw = d3.results?.length ? d3 : await getFallback(sort2);
+  try {
+    const [d1, d2, d3] = await Promise.all([
+      fetch(buildUrl(shuffledProviders[0], 'vote_average.desc', '&vote_average.gte=7&vote_count.gte=50&vote_count.lte=10000&popularity.lte=100')).then(r => r.json()),
+      fetch(buildUrl(shuffledProviders[1], sort1)).then(r => r.json()),
+      fetch(buildUrl(shuffledProviders[2], sort2)).then(r => r.json()),
+    ]);
 
-  const underrated = underratedRaw.results?.sort(() => Math.random() - 0.5)[0];
-  const popular1 = popular1Raw.results?.sort(() => Math.random() - 0.5)[0];
-  const popular2 = popular2Raw.results?.sort(() => Math.random() - 0.5)[0];
+    const underratedRaw = d1.results?.length ? d1 : await getFallback('vote_average.desc', '&vote_average.gte=7&vote_count.gte=50&vote_count.lte=10000&popularity.lte=100');
+    const popular1Raw = d2.results?.length ? d2 : await getFallback(sort1);
+    const popular2Raw = d3.results?.length ? d3 : await getFallback(sort2);
 
-  const seen = new Set();
-  const results = [underrated, popular1, popular2].filter(movie => {
-    if (!movie || seen.has(movie.id)) return false;
-    seen.add(movie.id);
-    return true;
-  });
+    const underrated = underratedRaw.results?.sort(() => Math.random() - 0.5)[0];
+    const popular1 = popular1Raw.results?.sort(() => Math.random() - 0.5)[0];
+    const popular2 = popular2Raw.results?.sort(() => Math.random() - 0.5)[0];
 
-  if (results.length < 3) {
-    const extraData = await getFallback(sort1);
-    const extras = extraData.results?.sort(() => Math.random() - 0.5) || [];
-    for (const movie of extras) {
-      if (results.length >= 3) break;
-      if (!seen.has(movie.id)) {
-        seen.add(movie.id);
-        results.push(movie);
+    const seen = new Set();
+    const results = [underrated, popular1, popular2].filter(movie => {
+      if (!movie || seen.has(movie.id)) return false;
+      seen.add(movie.id);
+      return true;
+    });
+
+    if (results.length < 3) {
+      const extraData = await getFallback(sort1);
+      const extras = extraData.results?.sort(() => Math.random() - 0.5) || [];
+      for (const movie of extras) {
+        if (results.length >= 3) break;
+        if (!seen.has(movie.id)) {
+          seen.add(movie.id);
+          results.push(movie);
+        }
       }
     }
-  }
 
-  return results;
+    return results;
+
+  } catch(err) {
+    document.querySelector('#results h1').textContent = 'Something went wrong, try again!';
+    document.querySelector('.results-container').innerHTML = '';
+    document.getElementById('retry-section').classList.remove('hidden');
+    return [];
+  }
 }
 
 async function displayMovies(movies) {
@@ -220,6 +232,18 @@ async function getStreamingPlatform(movieId, mediaType) {
 }
 
 document.querySelector('.retry-btn').addEventListener('click', async () => {
+  const moods = ['funny', 'emotional', 'intense', 'chill', 'horror'];
+  const types = ['movie', 'series', 'any'];
+  const languages = ['en', 'hi', 'te', 'ta', 'kn', 'ko', 'any'];
+  const eras = ['classic', '2000s', '2010s', 'recent', 'any'];
+
+  if (userSelection.mood === null) {
+    userSelection.mood = moods[Math.floor(Math.random() * moods.length)];
+    userSelection.type = types[Math.floor(Math.random() * types.length)];
+    userSelection.language = languages[Math.floor(Math.random() * languages.length)];
+    userSelection.era = eras[Math.floor(Math.random() * eras.length)];
+  }
+
   document.getElementById('retry-section').classList.add('hidden');
   document.querySelector('#results h1').textContent = 'Searching the best...';
   document.querySelector('.results-container').innerHTML = `
@@ -327,3 +351,50 @@ function openLightbox(src) {
 function closeLightbox() {
   document.getElementById('lightbox').classList.add('hidden');
 }
+
+document.querySelector('.surprise-btn').addEventListener('click', async () => {
+  const moods = ['funny', 'emotional', 'intense', 'chill', 'horror'];
+  const types = ['movie', 'series', 'any'];
+  const languages = ['en', 'hi', 'te', 'ta', 'kn', 'ko', 'any'];
+  const eras = ['classic', '2000s', '2010s', 'recent', 'any'];
+
+  userSelection.mood = moods[Math.floor(Math.random() * moods.length)];
+  userSelection.type = types[Math.floor(Math.random() * types.length)];
+  userSelection.language = languages[Math.floor(Math.random() * languages.length)];
+  userSelection.era = eras[Math.floor(Math.random() * eras.length)];
+
+  showStep('results');
+  document.querySelector('#results h1').textContent = 'Searching the best...';
+  document.querySelector('.results-container').innerHTML = `
+    <div class="skeleton-card"></div>
+    <div class="skeleton-card"></div>
+    <div class="skeleton-card"></div>
+  `;
+
+  const movies = await fetchMovies();
+  displayMovies(movies);
+});
+
+document.querySelector('.anime-btn').addEventListener('click', () => {
+  userSelection.language = 'ja';
+  userSelection.type = 'any';
+  userSelection.era = 'any';
+  showStep('step-anime');
+});
+
+document.querySelectorAll('#step-anime .mood-btn').forEach(btn => {
+  btn.addEventListener('click', async () => {
+    userSelection.mood = btn.dataset.mood;
+    userSelection.animeMode = true;
+    showStep('results');
+    document.querySelector('#results h1').textContent = 'Searching the best...';
+    document.querySelector('.results-container').innerHTML = `
+      <div class="skeleton-card"></div>
+      <div class="skeleton-card"></div>
+      <div class="skeleton-card"></div>
+    `;
+    const movies = await fetchMovies();
+    displayMovies(movies);
+    userSelection.animeMode = false;
+  });
+});

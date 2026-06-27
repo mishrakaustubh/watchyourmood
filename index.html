@@ -9,16 +9,21 @@
   </head>
   <body>
 
-    
     <div class="top-nav">
-      <div class="surprise-wrapper">
-       <button class="surprise-btn">Surprise Me</button>
-        <span class="tooltip">Not in a mood to choose? Let us pick for you</span>
-      </div>
-      <div class="search-wrapper">
-  <input type="text" class="search-input" placeholder="Search by Star 🔍" />
-</div>
+  <div class="left-nav">
+    <div class="surprise-wrapper">
+      <button class="surprise-btn">Surprise Me</button>
+      <span class="tooltip">Not in a mood to choose? Let us pick for you</span>
     </div>
+    <div class="anime-wrapper">
+      <button class="anime-btn">Anime</button>
+      <span class="tooltip">Mood is just animes?</span>
+    </div>
+  </div>
+  <div class="search-wrapper">
+    <input type="text" class="search-input" placeholder="Search by Star 🔍" />
+  </div>
+</div>
 
     <div class="divider"></div>
     
@@ -60,6 +65,7 @@
           <button class="mood-btn" data-lang="te">Telugu</button>
           <button class="mood-btn" data-lang="ta">Tamil</button>
           <button class="mood-btn" data-lang="kn">Kannada</button>
+          <button class="mood-btn" data-lang="ja">Japanese</button>
           <button class="mood-btn" data-lang="ko">Korean</button>
           <button class="mood-btn" data-lang="any">Any</button>
         </div>
@@ -80,6 +86,19 @@
         </div>
         <button class="back-btn" data-target="step-3">← Back</button>
       </div>
+
+      <div class="step hidden" id="step-anime">
+  <span class="progress-text">ANIME — PICK YOUR GENRE</span>
+  <h1>What kind of Anime?</h1>
+  <p>Pick a vibe and we'll find the best.</p>
+  <div class="mood-container">
+    <button class="mood-btn" data-mood="funny">Funny</button>
+    <button class="mood-btn" data-mood="emotional">Emotional</button>
+    <button class="mood-btn" data-mood="intense">Intense</button>
+    <button class="mood-btn" data-mood="chill">Chill</button>
+    <button class="mood-btn" data-mood="horror">Dark</button>
+  </div>
+</div>
 
       <div class="step hidden" id="results">
         <h1>Here's what to watch</h1>
