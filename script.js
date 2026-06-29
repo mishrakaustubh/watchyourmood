@@ -36,7 +36,11 @@ const userSelection = {
   mood: null,
   type: null,
   language: null,
-  era: null
+  era: null,
+  actorId: null,
+  actorName: null,
+  starMode: false,
+  animeMode: false
 };
 
 function showStep(stepId) {
@@ -86,13 +90,15 @@ async function fetchMovies() {
     : GENRE_MAP[userSelection.mood].join('|');
 
   const keywords = userSelection.animeMode ? '&with_keywords=210024' : '';
+  const castFilter = userSelection.starMode ? `&with_cast=${userSelection.actorId}` : '';
   const era = ERA_MAP[userSelection.era];
   const language = userSelection.language === 'any' ? '' : `&with_original_language=${userSelection.language}`;
   const mediaType = userSelection.type === 'series' ? 'tv' : 'movie';
 
-  const providerList = ['8', '119', '122', '232', '237'];
-  const shuffledProviders = [...providerList].sort(() => Math.random() - 0.5);
   const fallbackProviders = '8|119|122|232|237';
+  const shuffledProviders = userSelection.starMode 
+    ? [fallbackProviders, fallbackProviders, fallbackProviders]
+    : [...['8', '119', '122', '232', '237']].sort(() => Math.random() - 0.5);
 
   const page = Math.floor(Math.random() * 3) + 1;
   const sortMethods = ['popularity.desc', 'vote_average.desc', 'revenue.desc', 'release_date.desc'];
@@ -101,7 +107,8 @@ async function fetchMovies() {
   while (sort2 === sort1) sort2 = sortMethods[Math.floor(Math.random() * sortMethods.length)];
 
   function buildUrl(providers, sortBy, extra = '') {
-    return `https://api.themoviedb.org/3/discover/${mediaType}?api_key=${API_KEY}&with_genres=${genres}&primary_release_date.gte=${era.gte}&primary_release_date.lte=${era.lte}${language}&watch_region=IN&with_watch_providers=${providers}&sort_by=${sortBy}&page=${page}${keywords}${extra}`;
+    const providerFilter = userSelection.starMode ? '' : `&watch_region=IN&with_watch_providers=${providers}`;
+    return `https://api.themoviedb.org/3/discover/${mediaType}?api_key=${API_KEY}&with_genres=${genres}&primary_release_date.gte=${era.gte}&primary_release_date.lte=${era.lte}${language}${providerFilter}&sort_by=${sortBy}&page=${page}${keywords}${castFilter}${extra}`;
   }
 
   async function getFallback(sortBy, extra = '') {
@@ -232,16 +239,13 @@ async function getStreamingPlatform(movieId, mediaType) {
 }
 
 document.querySelector('.retry-btn').addEventListener('click', async () => {
-  const moods = ['funny', 'emotional', 'intense', 'chill', 'horror'];
-  const types = ['movie', 'series', 'any'];
-  const languages = ['en', 'hi', 'te', 'ta', 'kn', 'ko', 'any'];
-  const eras = ['classic', '2000s', '2010s', 'recent', 'any'];
-
-  if (userSelection.mood === null) {
-    userSelection.mood = moods[Math.floor(Math.random() * moods.length)];
-    userSelection.type = types[Math.floor(Math.random() * types.length)];
-    userSelection.language = languages[Math.floor(Math.random() * languages.length)];
-    userSelection.era = eras[Math.floor(Math.random() * eras.length)];
+  if (!userSelection.starMode) {
+    const moods = ['funny', 'emotional', 'intense', 'chill', 'horror'];
+    const eras = ['classic', '2000s', '2010s', 'recent', 'any'];
+    if (!userSelection.mood) {
+      userSelection.mood = moods[Math.floor(Math.random() * moods.length)];
+      userSelection.era = eras[Math.floor(Math.random() * eras.length)];
+    }
   }
 
   document.getElementById('retry-section').classList.add('hidden');
@@ -352,7 +356,7 @@ function closeLightbox() {
   document.getElementById('lightbox').classList.add('hidden');
 }
 
-document.querySelector('.surprise-btn').addEventListener('click', async () => {
+document.getElementById('surprise-icon').addEventListener('click', async () => {
   const moods = ['funny', 'emotional', 'intense', 'chill', 'horror'];
   const types = ['movie', 'series', 'any'];
   const languages = ['en', 'hi', 'te', 'ta', 'kn', 'ko', 'any'];
@@ -370,12 +374,11 @@ document.querySelector('.surprise-btn').addEventListener('click', async () => {
     <div class="skeleton-card"></div>
     <div class="skeleton-card"></div>
   `;
-
   const movies = await fetchMovies();
   displayMovies(movies);
 });
 
-document.querySelector('.anime-btn').addEventListener('click', () => {
+document.getElementById('anime-icon').addEventListener('click', () => {
   userSelection.language = 'ja';
   userSelection.type = 'any';
   userSelection.era = 'any';
@@ -396,5 +399,76 @@ document.querySelectorAll('#step-anime .mood-btn').forEach(btn => {
     const movies = await fetchMovies();
     displayMovies(movies);
     userSelection.animeMode = false;
+  });
+});
+
+document.getElementById('search-icon').addEventListener('click', () => {
+  const searchBar = document.getElementById('search-bar');
+  searchBar.classList.toggle('hidden');
+  if (!searchBar.classList.contains('hidden')) {
+    document.getElementById('search-input-field').focus();
+  }
+});
+
+let searchTimeout;
+
+document.getElementById('search-input-field').addEventListener('input', async (e) => {
+  const query = e.target.value.trim();
+  const dropdown = document.getElementById('search-dropdown');
+
+  if (query.length < 2) {
+    dropdown.classList.add('hidden');
+    return;
+  }
+
+  clearTimeout(searchTimeout);
+  searchTimeout = setTimeout(async () => {
+    const res = await fetch(`https://api.themoviedb.org/3/search/person?api_key=${API_KEY}&query=${encodeURIComponent(query)}`);
+    const data = await res.json();
+
+    if (!data.results?.length) {
+      dropdown.classList.add('hidden');
+      return;
+    }
+
+    dropdown.innerHTML = data.results.slice(0, 6).map(actor => `
+      <div class="dropdown-item" data-id="${actor.id}" data-name="${actor.name}">
+        ${actor.name}
+      </div>
+    `).join('');
+
+    dropdown.classList.remove('hidden');
+
+    dropdown.querySelectorAll('.dropdown-item').forEach(item => {
+      item.addEventListener('click', () => {
+        userSelection.actorId = item.dataset.id;
+        userSelection.actorName = item.dataset.name;
+        document.getElementById('star-name').textContent = item.dataset.name;
+        document.getElementById('search-input-field').value = item.dataset.name;
+        dropdown.classList.add('hidden');
+        showStep('step-star');
+      });
+    });
+
+  }, 300);
+});
+
+document.querySelectorAll('.mood-btn[data-starmood]').forEach(btn => {
+  btn.addEventListener('click', async () => {
+    userSelection.mood = btn.dataset.starmood === 'any' ? null : btn.dataset.starmood;
+    userSelection.language = 'any';
+    userSelection.type = 'any';
+    userSelection.era = 'any';
+    userSelection.starMode = true;
+
+    showStep('results');
+    document.querySelector('#results h1').textContent = 'Searching the best...';
+    document.querySelector('.results-container').innerHTML = `
+      <div class="skeleton-card"></div>
+      <div class="skeleton-card"></div>
+      <div class="skeleton-card"></div>
+    `;
+    const movies = await fetchMovies();
+    displayMovies(movies);
   });
 });

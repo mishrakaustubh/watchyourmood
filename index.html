@@ -6,24 +6,38 @@
     <title>WatchYourMood</title>
     <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="style.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
   </head>
   <body>
 
-    <div class="top-nav">
-  <div class="left-nav">
-    <div class="surprise-wrapper">
-      <button class="surprise-btn">Surprise Me</button>
+   <div class="top-nav">
+  <div class="logo">WatchYourMood</div>
+  <div class="nav-icons">
+    <div class="nav-icon-wrapper">
+      <i class="fa-solid fa-dice nav-icon" id="surprise-icon"></i>
       <span class="tooltip">Not in a mood to choose? Let us pick for you</span>
     </div>
-    <div class="anime-wrapper">
-      <button class="anime-btn">Anime</button>
-      <span class="tooltip">Mood is just animes?</span>
+    <div class="nav-icon-wrapper">
+      <i class="fa-solid fa-torii-gate nav-icon" id="anime-icon"></i>
+      <span class="tooltip">ANIMES?</span>
     </div>
-  </div>
-  <div class="search-wrapper">
-    <input type="text" class="search-input" placeholder="Search by Star 🔍" />
+    <div id="search-bar" class="hidden">
+  <div class="search-wrapper-inner">
+    <input type="text" id="search-input-field" placeholder="Search by Star..." class="search-input" autocomplete="off"/>
+    <div id="search-dropdown" class="hidden"></div>
   </div>
 </div>
+    <div class="nav-icon-wrapper">
+      <i class="fa-solid fa-magnifying-glass nav-icon" id="search-icon"></i>
+      <span class="tooltip">Search by Star</span>
+    </div>
+    <div class="nav-icon-wrapper">
+      <i class="fa-solid fa-film nav-icon disabled" id="universe-icon"></i>
+      <span class="tooltip">Universe — Coming Soon</span>
+    </div>
+  </div>
+</div>
+
 
     <div class="divider"></div>
     
@@ -99,6 +113,20 @@
     <button class="mood-btn" data-mood="horror">Dark</button>
   </div>
 </div>
+
+<div class="step hidden" id="step-star">
+        <span class="progress-text">SEARCH BY STAR</span>
+        <h1 id="star-name"></h1>
+        <p>What mood are you in?</p>
+        <div class="mood-container">
+          <button class="mood-btn" data-starmood="funny">Funny</button>
+          <button class="mood-btn" data-starmood="emotional">Emotional</button>
+          <button class="mood-btn" data-starmood="intense">Intense</button>
+          <button class="mood-btn" data-starmood="chill">Chill</button>
+          <button class="mood-btn" data-starmood="horror">Horror</button>
+          <button class="mood-btn" data-starmood="any">Any</button>
+        </div>
+      </div>
 
       <div class="step hidden" id="results">
         <h1>Here's what to watch</h1>
