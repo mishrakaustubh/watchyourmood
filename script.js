@@ -86,11 +86,13 @@ document.querySelector('.results-container').innerHTML = `
 
 async function fetchMovies() {
   const genres = userSelection.animeMode 
-    ? '16' 
+  ? '16' 
+  : userSelection.starMode 
+    ? (userSelection.mood && userSelection.mood !== 'any' ? GENRE_MAP[userSelection.mood].join('|') : '')
     : GENRE_MAP[userSelection.mood].join('|');
 
   const keywords = userSelection.animeMode ? '&with_keywords=210024' : '';
-  const castFilter = userSelection.starMode ? `&with_cast=${userSelection.actorId}` : '';
+  const castFilter = userSelection.starMode ? `&with_people=${userSelection.actorId}` : '';
   const era = ERA_MAP[userSelection.era];
   const language = userSelection.language === 'any' ? '' : `&with_original_language=${userSelection.language}`;
   const mediaType = userSelection.type === 'series' ? 'tv' : 'movie';
@@ -107,9 +109,10 @@ async function fetchMovies() {
   while (sort2 === sort1) sort2 = sortMethods[Math.floor(Math.random() * sortMethods.length)];
 
   function buildUrl(providers, sortBy, extra = '') {
-    const providerFilter = userSelection.starMode ? '' : `&watch_region=IN&with_watch_providers=${providers}`;
-    return `https://api.themoviedb.org/3/discover/${mediaType}?api_key=${API_KEY}&with_genres=${genres}&primary_release_date.gte=${era.gte}&primary_release_date.lte=${era.lte}${language}${providerFilter}&sort_by=${sortBy}&page=${page}${keywords}${castFilter}${extra}`;
-  }
+  const providerFilter = userSelection.starMode ? '' : `&watch_region=IN&with_watch_providers=${providers}`;
+  const genreFilter = genres ? `&with_genres=${genres}` : '';
+  return `https://api.themoviedb.org/3/discover/${mediaType}?api_key=${API_KEY}${genreFilter}&primary_release_date.gte=${era.gte}&primary_release_date.lte=${era.lte}${language}${providerFilter}&sort_by=${sortBy}&page=${page}${keywords}${castFilter}${extra}`;
+}
 
   async function getFallback(sortBy, extra = '') {
     const res = await fetch(buildUrl(fallbackProviders, sortBy, extra));
@@ -139,17 +142,54 @@ async function fetchMovies() {
     });
 
     if (results.length < 3) {
-      const extraData = await getFallback(sort1);
-      const extras = extraData.results?.sort(() => Math.random() - 0.5) || [];
-      for (const movie of extras) {
-        if (results.length >= 3) break;
-        if (!seen.has(movie.id)) {
-          seen.add(movie.id);
-          results.push(movie);
-        }
-      }
-    }
+  // Fallback 1: actor only, no genre, no provider filter
+  const fallback1Url = userSelection.starMode
+    ? `https://api.themoviedb.org/3/discover/${mediaType}?api_key=${API_KEY}&with_people=${userSelection.actorId}&sort_by=popularity.desc&page=1`
+    : buildUrl(fallbackProviders, sort1);
 
+  const fallback1Data = await fetch(fallback1Url).then(r => r.json());
+  const fallback1Results = fallback1Data.results?.sort(() => Math.random() - 0.5) || [];
+
+  for (const movie of fallback1Results) {
+    if (results.length >= 3) break;
+    if (!seen.has(movie.id)) {
+      seen.add(movie.id);
+      results.push(movie);
+    }
+  }
+}
+
+if (results.length < 3 && userSelection.starMode) {
+  // Fallback 2: try tv instead of movie or vice versa
+  const altMediaType = mediaType === 'movie' ? 'tv' : 'movie';
+  const fallback2Url = `https://api.themoviedb.org/3/discover/${altMediaType}?api_key=${API_KEY}&with_people=${userSelection.actorId}&sort_by=popularity.desc&page=1`;
+
+  const fallback2Data = await fetch(fallback2Url).then(r => r.json());
+  const fallback2Results = fallback2Data.results?.sort(() => Math.random() - 0.5) || [];
+
+  for (const movie of fallback2Results) {
+    if (results.length >= 3) break;
+    if (!seen.has(movie.id)) {
+      seen.add(movie.id);
+      results.push(movie);
+    }
+  }
+}
+
+if (results.length < 3 && userSelection.starMode) {
+  // Fallback 3: use person credits endpoint directly
+  const fallback3Url = `https://api.themoviedb.org/3/person/${userSelection.actorId}/combined_credits?api_key=${API_KEY}`;
+  const fallback3Data = await fetch(fallback3Url).then(r => r.json());
+  const credits = [...(fallback3Data.cast || [])].sort((a, b) => (b.popularity || 0) - (a.popularity || 0));
+
+  for (const movie of credits) {
+    if (results.length >= 3) break;
+    if (!seen.has(movie.id) && movie.poster_path) {
+      seen.add(movie.id);
+      results.push(movie);
+    }
+  }
+}
     return results;
 
   } catch(err) {
@@ -440,14 +480,27 @@ document.getElementById('search-input-field').addEventListener('input', async (e
     dropdown.classList.remove('hidden');
 
     dropdown.querySelectorAll('.dropdown-item').forEach(item => {
-      item.addEventListener('click', () => {
-        userSelection.actorId = item.dataset.id;
-        userSelection.actorName = item.dataset.name;
-        document.getElementById('star-name').textContent = item.dataset.name;
-        document.getElementById('search-input-field').value = item.dataset.name;
-        dropdown.classList.add('hidden');
-        showStep('step-star');
-      });
+      item.addEventListener('click', async () => {
+  userSelection.actorId = item.dataset.id;
+  userSelection.actorName = item.dataset.name;
+  userSelection.starMode = true;
+  userSelection.mood = 'intense';
+  userSelection.language = 'any';
+  userSelection.type = 'any';
+  userSelection.era = 'any';
+
+  document.getElementById('search-input-field').value = item.dataset.name;
+  dropdown.classList.add('hidden');
+  showStep('results');
+  document.querySelector('#results h1').textContent = `Best of ${item.dataset.name}`;
+  document.querySelector('.results-container').innerHTML = `
+    <div class="skeleton-card"></div>
+    <div class="skeleton-card"></div>
+    <div class="skeleton-card"></div>
+  `;
+  const movies = await fetchMovies();
+  displayMovies(movies);
+});
     });
 
   }, 300);
