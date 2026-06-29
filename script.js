@@ -525,3 +525,15 @@ document.querySelectorAll('.mood-btn[data-starmood]').forEach(btn => {
     displayMovies(movies);
   });
 });
+
+document.getElementById('results-back-btn').addEventListener('click', () => {
+  userSelection.starMode = false;
+  userSelection.animeMode = false;
+  userSelection.mood = null;
+  userSelection.type = null;
+  userSelection.language = null;
+  userSelection.era = null;
+  userSelection.actorId = null;
+  userSelection.actorName = null;
+  showStep('step-1');
+});
