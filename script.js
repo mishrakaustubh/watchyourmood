@@ -1,3 +1,5 @@
+document.querySelector('#step-1 h1').textContent = getGreeting();
+
 const GENRE_MAP = {
   funny: [35, 10770, 10762],
   emotional: [99, 18, 10749, 10751],
@@ -46,6 +48,7 @@ const userSelection = {
 function showStep(stepId) {
   document.querySelectorAll('.step').forEach(step => step.classList.add('hidden'));
   document.getElementById(stepId).classList.remove('hidden');
+  document.getElementById('results-back-btn').style.display = stepId === 'results' ? 'block' : 'none';
 }
 
 document.querySelectorAll('.mood-btn[data-mood]').forEach(btn => {
@@ -193,11 +196,15 @@ if (results.length < 3 && userSelection.starMode) {
     return results;
 
   } catch(err) {
-    document.querySelector('#results h1').textContent = 'Something went wrong, try again!';
-    document.querySelector('.results-container').innerHTML = '';
-    document.getElementById('retry-section').classList.remove('hidden');
-    return [];
-  }
+  document.querySelector('#results h1').textContent = 'Something went wrong';
+  document.querySelector('.results-container').innerHTML = `
+    <p style="font-family:'Segoe UI', sans-serif; opacity:0.7; text-align:center; letter-spacing:1px;">
+      We couldn't fetch movies right now. Check your connection and try again.
+    </p>
+  `;
+  document.getElementById('retry-section').classList.remove('hidden');
+  return [];
+}
 }
 
 async function displayMovies(movies) {
@@ -222,13 +229,18 @@ async function displayMovies(movies) {
     card.style.setProperty('--glow-color', colors.border);
 
     card.innerHTML = `
-  <img 
-    src="https://image.tmdb.org/t/p/w500${movie.poster_path}" 
-    alt="${movie.title || movie.name}"
-    loading="lazy"
-    style="opacity:0; transition: opacity 0.4s ease;"
-    onload="this.style.opacity='1'"
-  />
+  <div class="card-image-wrapper">
+    <img 
+      src="https://image.tmdb.org/t/p/w500${movie.poster_path}" 
+      alt="${movie.title || movie.name}"
+      loading="lazy"
+      style="opacity:0; transition: opacity 0.4s ease;"
+      onload="this.style.opacity='1'"
+    />
+    <div class="card-overlay">
+      <span>See More</span>
+    </div>
+  </div>
   <div class="card-info">
     <h2>${movie.title || movie.name}</h2>
     <p class="card-genre">${movie.genre_ids.slice(0,2).map(id => GENRE_NAMES[id] || '').join(', ')}</p>
@@ -240,6 +252,17 @@ async function displayMovies(movies) {
     card.addEventListener('click', () => openMoviePage(movie, platform, colors, mediaType));
     cards.push(card);
   }
+
+  if (cards.length === 0) {
+  document.querySelector('#results h1').textContent = 'No matches found';
+  container.innerHTML = `
+    <p style="font-family:'Segoe UI', sans-serif; opacity:0.7; text-align:center; letter-spacing:1px;">
+      We couldn't find anything matching your picks. Try different options!
+    </p>
+  `;
+  document.getElementById('retry-section').classList.remove('hidden');
+  return;
+}
 
   await new Promise(resolve => setTimeout(resolve, 800));
   container.innerHTML = '';
@@ -344,7 +367,7 @@ if (colors.bg.includes('gradient')) {
   const creditsData = await creditsRes.json();
   const videosData = await videosRes.json();
 
-  const cast = creditsData.cast?.slice(0, 6) || [];
+  const cast = creditsData.cast?.slice(0, 8) || [];
   document.getElementById('movie-cast').innerHTML = cast.map(actor =>
     `<span class="cast-badge" style="border-color:${colors.border}">${actor.name}</span>`
   ).join('');
@@ -352,7 +375,7 @@ if (colors.bg.includes('gradient')) {
   const trailer = videosData.results?.find(v => v.type === 'Trailer' && v.site === 'YouTube');
 const imagesRes = await fetch(`https://api.themoviedb.org/3/${mediaType}/${movie.id}/images?api_key=${API_KEY}`);
 const imagesData = await imagesRes.json();
-const backdrops = imagesData.backdrops?.slice(0, 9) || [];
+const backdrops = imagesData.backdrops?.slice(0, 10) || [];
 
 let trailerHTML = '';
 if (trailer) {
@@ -467,9 +490,10 @@ document.getElementById('search-input-field').addEventListener('input', async (e
     const data = await res.json();
 
     if (!data.results?.length) {
-      dropdown.classList.add('hidden');
-      return;
-    }
+  dropdown.innerHTML = `<div class="dropdown-item" style="cursor:default; opacity:0.6;">No actor found, try another name</div>`;
+  dropdown.classList.remove('hidden');
+  return;
+}
 
     dropdown.innerHTML = data.results.slice(0, 6).map(actor => `
       <div class="dropdown-item" data-id="${actor.id}" data-name="${actor.name}">
@@ -537,3 +561,29 @@ document.getElementById('results-back-btn').addEventListener('click', () => {
   userSelection.actorName = null;
   showStep('step-1');
 });
+
+if (!localStorage.getItem('hasSeenIntro')) {
+  const hint = document.getElementById('icon-hint');
+  hint.classList.remove('hidden');
+  setTimeout(() => {
+    hint.classList.add('fade-out');
+  }, 3000);
+  localStorage.setItem('hasSeenIntro', 'true');
+}
+
+function getGreeting() {
+  const hour = new Date().getHours();
+  
+  const morning = ["Woke up early this morning?", "Coffee in hand, what's the vibe?", "Early bird needs a good watch?"];
+  const afternoon = ["Not sleepy this afternoon?", "Lunch break, what's the vibe?", "Afternoon slump? Let's fix that."];
+  const evening = ["Evening unwind time?", "What's tonight's vibe?", "Ready to relax this evening?"];
+  const night = ["Late night, what's the vibe?", "Can't sleep? Let's find something good.", "Burning the midnight oil with a show?"];
+
+  let options;
+  if (hour >= 5 && hour < 12) options = morning;
+  else if (hour >= 12 && hour < 17) options = afternoon;
+  else if (hour >= 17 && hour < 21) options = evening;
+  else options = night;
+
+  return options[Math.floor(Math.random() * options.length)];
+}

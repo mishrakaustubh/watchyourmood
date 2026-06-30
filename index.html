@@ -11,7 +11,10 @@
   <body>
 
    <div class="top-nav">
-  <div class="logo">WatchYourMood</div>
+  <div class="logo">
+  <i class="fa-solid fa-clapperboard" style="color:#f5c518; font-size:1.4rem;"></i>
+  <span>WATCH</span><span>YOURMOOD</span>
+</div>
   <div class="nav-icons">
     <div class="nav-icon-wrapper">
       <i class="fa-solid fa-dice nav-icon" id="surprise-icon"></i>
@@ -40,7 +43,9 @@
 
 
     <div class="divider"></div>
-    
+<div id="icon-hint" class="hidden">New ways to discover ↑ </div>
+<button class="back-btn" id="results-back-btn" style="display:none;">← Back</button>
+
     <div class="main-content">
 
 
@@ -115,7 +120,6 @@
 </div>
 
       <div class="step hidden" id="results">
-        <button class="back-btn" id="results-back-btn">← Back</button>
         <h1>Here's what to watch</h1>
         <div class="results-container"></div>
         <div class="retry-section hidden" id="retry-section">
