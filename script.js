@@ -587,3 +587,33 @@ function getGreeting() {
 
   return options[Math.floor(Math.random() * options.length)];
 }
+
+async function loadPosterBackground() {
+  const [res1, res2, res3] = await Promise.all([
+    fetch(`https://api.themoviedb.org/3/trending/movie/week?api_key=${API_KEY}&page=1`),
+    fetch(`https://api.themoviedb.org/3/trending/movie/week?api_key=${API_KEY}&page=2`),
+    fetch(`https://api.themoviedb.org/3/trending/movie/week?api_key=${API_KEY}&page=3`)
+  ]);
+  const data1 = await res1.json();
+  const data2 = await res2.json();
+  const data3 = await res3.json();
+  const seen = new Set();
+const posters = [...(data1.results || []), ...(data2.results || []), ...(data3.results || [])]
+  .filter(m => m.poster_path && !seen.has(m.id) && seen.add(m.id));
+
+  const container = document.getElementById('poster-bg');
+  const columnCount = 8;
+  const columns = Array.from({ length: columnCount }, () => []);
+
+  posters.forEach((movie, i) => {
+    columns[i % columnCount].push(movie);
+  });
+
+  container.innerHTML = columns.map((col, i) => `
+    <div class="poster-column ${i % 2 === 1 ? 'offset' : ''}">
+      ${col.map(movie => `<img src="https://image.tmdb.org/t/p/w200${movie.poster_path}" />`).join('')}
+    </div>
+  `).join('');
+}
+
+loadPosterBackground();

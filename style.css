@@ -731,3 +731,42 @@ p {
 .logo span:last-child {
   color: #ffffff;
 }
+
+#poster-bg {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  gap: 3px;
+  z-index: -2;
+  overflow: hidden;
+}
+
+#poster-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(13, 13, 13, 0.88);
+  z-index: -1;
+}
+
+.poster-column {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.poster-column img {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.poster-column.offset {
+  margin-top: -100px;
+}
