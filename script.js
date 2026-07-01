@@ -42,7 +42,7 @@ const userSelection = {
   actorId: null,
   actorName: null,
   starMode: false,
-  animeMode: false
+  animeMode: false,
 };
 
 function showStep(stepId) {
@@ -302,13 +302,8 @@ async function getStreamingPlatform(movieId, mediaType) {
 }
 
 document.querySelector('.retry-btn').addEventListener('click', async () => {
-  if (!userSelection.starMode) {
-    const moods = ['funny', 'emotional', 'intense', 'chill', 'horror'];
-    const eras = ['classic', '2000s', '2010s', 'recent', 'any'];
-    if (!userSelection.mood) {
-      userSelection.mood = moods[Math.floor(Math.random() * moods.length)];
-      userSelection.era = eras[Math.floor(Math.random() * eras.length)];
-    }
+  if (userSelection.surpriseMode) {
+    randomizeSelections();
   }
 
   document.getElementById('retry-section').classList.add('hidden');
@@ -420,15 +415,8 @@ function closeLightbox() {
 }
 
 document.getElementById('surprise-icon').addEventListener('click', async () => {
-  const moods = ['funny', 'emotional', 'intense', 'chill', 'horror'];
-  const types = ['movie', 'series', 'any'];
-  const languages = ['en', 'hi', 'te', 'ta', 'kn', 'ko', 'any'];
-  const eras = ['classic', '2000s', '2010s', 'recent', 'any'];
-
-  userSelection.mood = moods[Math.floor(Math.random() * moods.length)];
-  userSelection.type = types[Math.floor(Math.random() * types.length)];
-  userSelection.language = languages[Math.floor(Math.random() * languages.length)];
-  userSelection.era = eras[Math.floor(Math.random() * eras.length)];
+  userSelection.surpriseMode = true;
+  randomizeSelections();
 
   showStep('results');
   document.querySelector('#results h1').textContent = 'Searching the best...';
@@ -437,7 +425,16 @@ document.getElementById('surprise-icon').addEventListener('click', async () => {
     <div class="skeleton-card"></div>
     <div class="skeleton-card"></div>
   `;
-  const movies = await fetchMovies();
+
+  let movies = await fetchMovies();
+  let attempts = 1;
+
+  while (movies.length === 0 && attempts < 3) {
+    randomizeSelections();
+    movies = await fetchMovies();
+    attempts++;
+  }
+
   displayMovies(movies);
 });
 
@@ -553,6 +550,7 @@ document.querySelectorAll('.mood-btn[data-starmood]').forEach(btn => {
 document.getElementById('results-back-btn').addEventListener('click', () => {
   userSelection.starMode = false;
   userSelection.animeMode = false;
+  userSelection.surpriseMode = false;
   userSelection.mood = null;
   userSelection.type = null;
   userSelection.language = null;
@@ -617,3 +615,15 @@ const posters = [...(data1.results || []), ...(data2.results || []), ...(data3.r
 }
 
 loadPosterBackground();
+
+function randomizeSelections() {
+  const moods = ['funny', 'emotional', 'intense', 'chill', 'horror'];
+  const types = ['movie', 'series', 'any'];
+  const languages = ['en', 'hi', 'te', 'ta', 'ko', 'any'];
+  const eras = ['2000s', '2010s', 'recent', 'any'];
+
+  userSelection.mood = moods[Math.floor(Math.random() * moods.length)];
+  userSelection.type = types[Math.floor(Math.random() * types.length)];
+  userSelection.language = languages[Math.floor(Math.random() * languages.length)];
+  userSelection.era = eras[Math.floor(Math.random() * eras.length)];
+}
