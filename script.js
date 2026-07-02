@@ -43,6 +43,7 @@ const userSelection = {
   actorName: null,
   starMode: false,
   animeMode: false,
+  selectPlatform: 'all' 
 };
 
 function showStep(stepId) {
@@ -100,10 +101,11 @@ async function fetchMovies() {
   const language = userSelection.language === 'any' ? '' : `&with_original_language=${userSelection.language}`;
   const mediaType = userSelection.type === 'series' ? 'tv' : 'movie';
 
-  const fallbackProviders = '8|119|122|232|237';
-  const shuffledProviders = userSelection.starMode 
-    ? [fallbackProviders, fallbackProviders, fallbackProviders]
-    : [...['8', '119', '122', '232', '237']].sort(() => Math.random() - 0.5);
+const fallbackProviders = '8|119|122|232|237';
+
+const shuffledProviders = userSelection.starMode 
+  ? [fallbackProviders, fallbackProviders, fallbackProviders]
+  : [...['8', '119', '122', '232', '237']].sort(() => Math.random() - 0.5);
 
   const page = Math.floor(Math.random() * 3) + 1;
   const sortMethods = ['popularity.desc', 'vote_average.desc', 'revenue.desc', 'release_date.desc'];
@@ -283,6 +285,7 @@ async function displayMovies(movies) {
     document.getElementById('retry-section').style.animation = 'fadeInUp 0.4s ease forwards';
     document.getElementById('retry-section').scrollIntoView({ behavior: 'smooth', block: 'center' });
   }, cards.length * 150 + 400);
+  document.getElementById('platform-filter').classList.remove('hidden');
 }
 
 async function getStreamingPlatform(movieId, mediaType) {
@@ -295,7 +298,7 @@ async function getStreamingPlatform(movieId, mediaType) {
   const name = available[0].provider_name;
   if (name.includes('Netflix')) return 'Netflix';
   if (name.includes('Prime')) return 'Prime';
-  if (name.includes('Hotstar') || name.includes('Disney') || name.includes('Jio')) return 'JioHotstar';
+  if (name.includes('Hotstar') || name.includes('Disney') || name.includes('Jio') || name.includes('JioCinema')) return 'JioHotstar';
   if (name.includes('Zee5') || name.includes('ZEE5')) return 'Zee5';
   if (name.includes('Sony')) return 'SonyLIV';
   return 'Prime';
@@ -307,13 +310,21 @@ document.querySelector('.retry-btn').addEventListener('click', async () => {
   }
 
   document.getElementById('retry-section').classList.add('hidden');
+  document.getElementById('platform-filter').classList.add('hidden');
   document.querySelector('#results h1').textContent = 'Searching the best...';
   document.querySelector('.results-container').innerHTML = `
     <div class="skeleton-card"></div>
     <div class="skeleton-card"></div>
     <div class="skeleton-card"></div>
   `;
-  const movies = await fetchMovies();
+
+  let movies;
+  if (userSelection.selectedPlatform && userSelection.selectedPlatform !== 'all') {
+    movies = await fetchMoviesForPlatform(userSelection.selectedPlatform);
+  } else {
+    movies = await fetchMovies();
+  }
+
   displayMovies(movies);
 });
 
@@ -557,6 +568,11 @@ document.getElementById('results-back-btn').addEventListener('click', () => {
   userSelection.era = null;
   userSelection.actorId = null;
   userSelection.actorName = null;
+  document.getElementById('platform-filter').classList.add('hidden');
+userSelection.selectedPlatform = 'all';
+document.querySelectorAll('.platform-filter-btn').forEach(b => b.classList.remove('active'));
+document.querySelector('.platform-filter-btn[data-platform="all"]').classList.add('active');
+document.getElementById('platform-dropdown-toggle').textContent = 'Platform ▾';
   showStep('step-1');
 });
 
@@ -626,4 +642,108 @@ function randomizeSelections() {
   userSelection.type = types[Math.floor(Math.random() * types.length)];
   userSelection.language = languages[Math.floor(Math.random() * languages.length)];
   userSelection.era = eras[Math.floor(Math.random() * eras.length)];
+}
+
+document.getElementById('platform-dropdown-toggle').addEventListener('click', () => {
+  document.getElementById('platform-dropdown-menu').classList.toggle('hidden');
+});
+
+document.querySelectorAll('.platform-filter-btn').forEach(btn => {
+  btn.addEventListener('click', async () => {
+    document.querySelectorAll('.platform-filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('platform-dropdown-menu').classList.add('hidden');
+    document.getElementById('platform-dropdown-toggle').textContent = 
+      btn.dataset.platform === 'all' ? 'Platform ▾' : `${btn.textContent.trim()} ▾`;
+
+    userSelection.selectedPlatform = btn.dataset.platform;
+
+    document.getElementById('retry-section').classList.add('hidden');
+    document.getElementById('platform-filter').classList.add('hidden');
+    document.querySelector('#results h1').textContent = 'Searching the best...';
+    document.querySelector('.results-container').innerHTML = `
+      <div class="skeleton-card"></div>
+      <div class="skeleton-card"></div>
+      <div class="skeleton-card"></div>
+    `;
+
+    let movies;
+    if (btn.dataset.platform === 'all') {
+      movies = await fetchMovies();
+    } else {
+      movies = await fetchMoviesForPlatform(btn.dataset.platform);
+    }
+
+    if (movies.length === 0) {
+      const platformNames = {
+        '8': 'Netflix', '119': 'Prime', '122': 'JioHotstar',
+        '232': 'Zee5', '237': 'SonyLIV'
+      };
+      document.querySelector('#results h1').textContent = 'No results found';
+      document.querySelector('.results-container').innerHTML = `
+        <p style="font-family:'Segoe UI', sans-serif; opacity:0.7; text-align:center; letter-spacing:1px;">
+          No results for this combination on ${platformNames[btn.dataset.platform]}. Try retry or pick another platform.
+        </p>
+      `;
+      document.getElementById('retry-section').classList.remove('hidden');
+      document.getElementById('platform-filter').classList.remove('hidden');
+      return;
+    }
+
+    displayMovies(movies);
+  });
+});
+
+async function fetchMoviesForPlatform(platformId) {
+  const genres = userSelection.animeMode 
+    ? '16' 
+    : GENRE_MAP[userSelection.mood]?.join('|') || '';
+  const era = ERA_MAP[userSelection.era];
+  const language = userSelection.language === 'any' ? '' : `&with_original_language=${userSelection.language}`;
+  const mediaType = userSelection.type === 'series' ? 'tv' : 'movie';
+  const keywords = userSelection.animeMode ? '&with_keywords=210024' : '';
+  const castFilter = userSelection.starMode ? `&with_people=${userSelection.actorId}` : '';
+  const genreFilter = genres ? `&with_genres=${genres}` : '';
+
+  const platformNames = {
+    '8': 'Netflix', '119': 'Prime', '122': 'JioHotstar',
+    '1154': 'JioHotstar', '232': 'Zee5', '237': 'SonyLIV'
+  };
+
+  const platformIds = platformId.split('|');
+  const targetPlatformName = platformNames[platformIds[0]];
+
+  let matched = [];
+  let attempts = 0;
+  const seen = new Set();
+
+  // generate 5 unique random pages between 1-10
+  const pages = [];
+  while (pages.length < 5) {
+    const p = Math.floor(Math.random() * 10) + 1;
+    if (!pages.includes(p)) pages.push(p);
+  }
+
+  for (const page of pages) {
+    if (matched.length >= 3) break;
+
+    const url = `https://api.themoviedb.org/3/discover/${mediaType}?api_key=${API_KEY}${genreFilter}&primary_release_date.gte=${era.gte}&primary_release_date.lte=${era.lte}${language}&sort_by=popularity.desc&page=${page}${keywords}${castFilter}`;
+    
+    const res = await fetch(url);
+    const data = await res.json();
+    const movies = (data.results || []).sort(() => Math.random() - 0.5);
+
+    for (const movie of movies) {
+      if (matched.length >= 3) break;
+      if (seen.has(movie.id)) continue;
+      seen.add(movie.id);
+      const platform = await getStreamingPlatform(movie.id, mediaType);
+      if (platform === targetPlatformName) {
+        matched.push(movie);
+      }
+    }
+    attempts++;
+  }
+
+  return matched.sort(() => Math.random() - 0.5);
 }
