@@ -43,7 +43,8 @@ const userSelection = {
   actorName: null,
   starMode: false,
   animeMode: false,
-  selectPlatform: 'all' 
+  selectPlatform: 'all' ,
+  searchType: 'actor'
 };
 
 function showStep(stepId) {
@@ -96,7 +97,11 @@ async function fetchMovies() {
     : GENRE_MAP[userSelection.mood].join('|');
 
   const keywords = userSelection.animeMode ? '&with_keywords=210024' : '';
-  const castFilter = userSelection.starMode ? `&with_people=${userSelection.actorId}` : '';
+  const castFilter = userSelection.starMode 
+  ? userSelection.searchType === 'director'
+    ? `&with_crew=${userSelection.actorId}`
+    : `&with_people=${userSelection.actorId}`
+  : '';
   const era = ERA_MAP[userSelection.era];
   const language = userSelection.language === 'any' ? '' : `&with_original_language=${userSelection.language}`;
   const mediaType = userSelection.type === 'series' ? 'tv' : 'movie';
@@ -497,15 +502,21 @@ document.getElementById('search-input-field').addEventListener('input', async (e
     const res = await fetch(`https://api.themoviedb.org/3/search/person?api_key=${API_KEY}&query=${encodeURIComponent(query)}`);
     const data = await res.json();
 
-    if (!data.results?.length) {
-  dropdown.innerHTML = `<div class="dropdown-item" style="cursor:default; opacity:0.6;">No actor found, try another name</div>`;
-  dropdown.classList.remove('hidden');
-  return;
-}
+    let results = data.results || [];
 
-    dropdown.innerHTML = data.results.slice(0, 6).map(actor => `
-      <div class="dropdown-item" data-id="${actor.id}" data-name="${actor.name}">
-        ${actor.name}
+    if (userSelection.searchType === 'director') {
+      results = results.filter(p => p.known_for_department === 'Directing');
+    }
+
+    if (!results.length) {
+      dropdown.innerHTML = `<div class="dropdown-item" style="cursor:default; opacity:0.6;">No ${userSelection.searchType} found</div>`;
+      dropdown.classList.remove('hidden');
+      return;
+    }
+
+    dropdown.innerHTML = results.slice(0, 6).map(person => `
+      <div class="dropdown-item" data-id="${person.id}" data-name="${person.name}">
+        ${person.name}
       </div>
     `).join('');
 
@@ -513,26 +524,30 @@ document.getElementById('search-input-field').addEventListener('input', async (e
 
     dropdown.querySelectorAll('.dropdown-item').forEach(item => {
       item.addEventListener('click', async () => {
-  userSelection.actorId = item.dataset.id;
-  userSelection.actorName = item.dataset.name;
-  userSelection.starMode = true;
-  userSelection.mood = 'intense';
-  userSelection.language = 'any';
-  userSelection.type = 'any';
-  userSelection.era = 'any';
+        userSelection.actorId = item.dataset.id;
+        userSelection.actorName = item.dataset.name;
+        userSelection.starMode = true;
+        userSelection.mood = 'intense';
+        userSelection.language = 'any';
+        userSelection.type = 'any';
+        userSelection.era = 'any';
 
-  document.getElementById('search-input-field').value = item.dataset.name;
-  dropdown.classList.add('hidden');
-  showStep('results');
-  document.querySelector('#results h1').textContent = `Best of ${item.dataset.name}`;
-  document.querySelector('.results-container').innerHTML = `
-    <div class="skeleton-card"></div>
-    <div class="skeleton-card"></div>
-    <div class="skeleton-card"></div>
-  `;
-  const movies = await fetchMovies();
-  displayMovies(movies);
-});
+        document.getElementById('search-input-field').value = item.dataset.name;
+        dropdown.classList.add('hidden');
+        showStep('results');
+        document.querySelector('#results h1').textContent = 
+          userSelection.searchType === 'director' 
+            ? `Best of ${item.dataset.name}'s Direction` 
+            : `Best of ${item.dataset.name}`;
+        document.querySelector('.results-container').innerHTML = `
+          <div class="skeleton-card"></div>
+          <div class="skeleton-card"></div>
+          <div class="skeleton-card"></div>
+        `;
+
+        const movies = await fetchMovies();
+        displayMovies(movies);
+      });
     });
 
   }, 300);
@@ -719,15 +734,24 @@ async function fetchMoviesForPlatform(platformId) {
 
   // generate 5 unique random pages between 1-10
   const pages = [];
+if (userSelection.starMode) {
+  for (let i = 1; i <= 5; i++) pages.push(i);
+} else {
   while (pages.length < 5) {
     const p = Math.floor(Math.random() * 10) + 1;
     if (!pages.includes(p)) pages.push(p);
   }
+}
 
   for (const page of pages) {
     if (matched.length >= 3) break;
 
-    const url = `https://api.themoviedb.org/3/discover/${mediaType}?api_key=${API_KEY}${genreFilter}&primary_release_date.gte=${era.gte}&primary_release_date.lte=${era.lte}${language}&sort_by=popularity.desc&page=${page}${keywords}${castFilter}`;
+    const sortMethods = ['popularity.desc', 'vote_average.desc', 'revenue.desc', 'release_date.desc'];
+const randomSort = sortMethods[Math.floor(Math.random() * sortMethods.length)];
+
+const url = userSelection.starMode 
+  ? `https://api.themoviedb.org/3/discover/${mediaType}?api_key=${API_KEY}${genreFilter}&primary_release_date.gte=${era.gte}&primary_release_date.lte=${era.lte}${language}&sort_by=${randomSort}&page=${page}${keywords}${castFilter}`
+  : `https://api.themoviedb.org/3/discover/${mediaType}?api_key=${API_KEY}${genreFilter}&primary_release_date.gte=${era.gte}&primary_release_date.lte=${era.lte}${language}&sort_by=popularity.desc&page=${page}${keywords}${castFilter}`;
     
     const res = await fetch(url);
     const data = await res.json();
@@ -738,6 +762,7 @@ async function fetchMoviesForPlatform(platformId) {
       if (seen.has(movie.id)) continue;
       seen.add(movie.id);
       const platform = await getStreamingPlatform(movie.id, mediaType);
+      console.log(movie.title || movie.name, '→', platform);
       if (platform === targetPlatformName) {
         matched.push(movie);
       }
@@ -747,3 +772,21 @@ async function fetchMoviesForPlatform(platformId) {
 
   return matched.sort(() => Math.random() - 0.5);
 }
+
+document.getElementById('search-actor-btn').addEventListener('click', () => {
+  userSelection.searchType = 'actor';
+  document.getElementById('search-actor-btn').classList.add('active');
+  document.getElementById('search-director-btn').classList.remove('active');
+  document.getElementById('search-input-field').placeholder = 'Search by Actor...';
+  document.getElementById('search-dropdown').classList.add('hidden');
+  document.getElementById('search-input-field').value = '';
+});
+
+document.getElementById('search-director-btn').addEventListener('click', () => {
+  userSelection.searchType = 'director';
+  document.getElementById('search-director-btn').classList.add('active');
+  document.getElementById('search-actor-btn').classList.remove('active');
+  document.getElementById('search-input-field').placeholder = 'Search by Director...';
+  document.getElementById('search-dropdown').classList.add('hidden');
+  document.getElementById('search-input-field').value = '';
+});

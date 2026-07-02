@@ -27,14 +27,18 @@
       <span class="tooltip">ANIMES?</span>
     </div>
     <div id="search-bar" class="hidden">
+  <div class="search-type-toggle">
+    <button class="search-type-btn active" id="search-actor-btn">Actor</button>
+    <button class="search-type-btn" id="search-director-btn">Director</button>
+  </div>
   <div class="search-wrapper-inner">
-    <input type="text" id="search-input-field" placeholder="Search by Star..." class="search-input" autocomplete="off"/>
+    <input type="text" id="search-input-field" placeholder="Search by Actor..." class="search-input" autocomplete="off"/>
     <div id="search-dropdown" class="hidden"></div>
   </div>
 </div>
     <div class="nav-icon-wrapper">
       <i class="fa-solid fa-magnifying-glass nav-icon" id="search-icon"></i>
-      <span class="tooltip">Search by Star</span>
+      <span class="tooltip">Search by Actor/Director</span>
     </div>
     <div class="nav-icon-wrapper">
       <i class="fa-solid fa-film nav-icon disabled" id="universe-icon"></i>
