@@ -53,7 +53,8 @@ const userSelection = {
 function showStep(stepId) {
   document.querySelectorAll('.step').forEach(step => step.classList.add('hidden'));
   document.getElementById(stepId).classList.remove('hidden');
-  document.getElementById('results-back-btn').style.display = stepId === 'results' ? 'block' : 'none';
+  const backBtn = document.getElementById('results-back-btn');
+  if (backBtn) backBtn.style.display = stepId === 'results' ? 'block' : 'none';
 }
 
 document.querySelectorAll('.mood-btn[data-mood]').forEach(btn => {
@@ -203,7 +204,8 @@ if (results.length < 3 && userSelection.starMode) {
     }
   }
 }
-    return results;
+    const seenIds = getSeenList().map(m => m.id);
+return results.filter(m => !seenIds.includes(m.id));
 
   } catch(err) {
   document.querySelector('#results h1').textContent = 'Something went wrong';
@@ -230,49 +232,52 @@ async function displayMovies(movies) {
     const card = document.createElement('div');
     card.classList.add('movie-card');
     if (colors.bg.includes('gradient')) {
-  card.style.background = colors.bg;
-} else {
-  card.style.backgroundColor = colors.bg;
-}
+      card.style.background = colors.bg;
+    } else {
+      card.style.backgroundColor = colors.bg;
+    }
     card.style.borderColor = colors.border;
     card.style.color = colors.text;
     card.style.setProperty('--glow-color', colors.border);
 
     card.innerHTML = `
-  <div class="card-image-wrapper">
-    <img 
-      src="https://image.tmdb.org/t/p/w500${movie.poster_path}" 
-      alt="${movie.title || movie.name}"
-      loading="lazy"
-      style="opacity:0; transition: opacity 0.4s ease;"
-      onload="this.style.opacity='1'"
-    />
-    <div class="card-overlay">
-      <span>See More</span>
-    </div>
-  </div>
-  <div class="card-info">
-    <h2>${movie.title || movie.name}</h2>
-    <p class="card-genre">${movie.genre_ids.slice(0,2).map(id => GENRE_NAMES[id] || '').join(', ')}</p>
-    <p class="card-rating">${movie.vote_average.toFixed(1)} ⭐</p>
-    <span class="platform-badge">${platform}</span>
-  </div>
-`;
+      <div class="card-image-wrapper">
+        <img 
+          src="https://image.tmdb.org/t/p/w500${movie.poster_path}" 
+          alt="${movie.title || movie.name}"
+          loading="lazy"
+          style="opacity:0; transition: opacity 0.4s ease;"
+          onload="this.style.opacity='1'"
+        />
+        <div class="card-overlay">
+          <span>See More</span>
+        </div>
+      </div>
+      <div class="card-info">
+        <h2>${movie.title || movie.name}</h2>
+        <p class="card-genre">${movie.genre_ids.slice(0,2).map(id => GENRE_NAMES[id] || '').join(', ')}</p>
+        <p class="card-rating">${movie.vote_average.toFixed(1)} ⭐</p>
+        <span class="platform-badge">${platform}</span>
+        <button class="seen-btn ${isMovieSeen(movie.id) ? 'seen-active' : ''}" data-id="${movie.id}">
+          ${isMovieSeen(movie.id) ? '✓ Seen' : '+ Mark as Seen'}
+        </button>
+      </div>
+    `;
 
     card.addEventListener('click', () => openMoviePage(movie, platform, colors, mediaType));
     cards.push(card);
   }
 
   if (cards.length === 0) {
-  document.querySelector('#results h1').textContent = 'No matches found';
-  container.innerHTML = `
-    <p style="font-family:'Segoe UI', sans-serif; opacity:0.7; text-align:center; letter-spacing:1px;">
-      We couldn't find anything matching your picks. Try different options!
-    </p>
-  `;
-  document.getElementById('retry-section').classList.remove('hidden');
-  return;
-}
+    document.querySelector('#results h1').textContent = 'No matches found';
+    container.innerHTML = `
+      <p style="font-family:'Segoe UI', sans-serif; opacity:0.7; text-align:center; letter-spacing:1px;">
+        We couldn't find anything matching your picks. Try different options!
+      </p>
+    `;
+    document.getElementById('retry-section').classList.remove('hidden');
+    return;
+  }
 
   await new Promise(resolve => setTimeout(resolve, 800));
   container.innerHTML = '';
@@ -291,9 +296,29 @@ async function displayMovies(movies) {
   setTimeout(() => {
     document.getElementById('retry-section').classList.remove('hidden');
     document.getElementById('retry-section').style.animation = 'fadeInUp 0.4s ease forwards';
-    document.getElementById('retry-section').scrollIntoView({ behavior: 'smooth', block: 'center' });
+    setTimeout(() => {
+      document.getElementById('retry-section').scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 300);
   }, cards.length * 150 + 400);
+
   document.getElementById('platform-filter').classList.remove('hidden');
+
+  document.querySelectorAll('.seen-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const movieId = parseInt(btn.dataset.id);
+      const movie = movies.find(m => m.id === movieId);
+      if (isMovieSeen(movieId)) {
+        removeFromSeen(movieId);
+        btn.textContent = '+ Mark as Seen';
+        btn.classList.remove('seen-active');
+      } else {
+        addToSeen(movie);
+        btn.textContent = '✓ Seen';
+        btn.classList.add('seen-active');
+      }
+    });
+  });
 }
 
 async function getStreamingPlatform(movieId, mediaType) {
@@ -776,7 +801,9 @@ async function fetchMoviesForPlatform(platformId) {
     if (attempts >= maxAttempts) break;
   }
 
-  return matched.sort(() => Math.random() - 0.5);
+const seenIds = getSeenList().map(m => m.id);
+return matched.filter(m => !seenIds.includes(m.id)).sort(() => Math.random() - 0.5);
+
 }
 
 document.getElementById('search-actor-btn').addEventListener('click', () => {
@@ -795,4 +822,253 @@ document.getElementById('search-director-btn').addEventListener('click', () => {
   document.getElementById('search-input-field').placeholder = 'Search by Director...';
   document.getElementById('search-dropdown').classList.add('hidden');
   document.getElementById('search-input-field').value = '';
+});
+
+function getSeenList() {
+  return JSON.parse(localStorage.getItem('seenMovies') || '[]');
+}
+
+function addToSeen(movie) {
+  const seen = getSeenList();
+  if (!seen.find(m => m.id === movie.id)) {
+    seen.push({
+      id: movie.id,
+      title: movie.title || movie.name,
+      poster: movie.poster_path,
+      rating: movie.vote_average,
+      genres: movie.genre_ids?.slice(0,2).map(id => GENRE_NAMES[id] || '').filter(Boolean).join(', ')
+    });
+    localStorage.setItem('seenMovies', JSON.stringify(seen));
+  }
+}
+
+function removeFromSeen(movieId) {
+  const seen = getSeenList().filter(m => m.id !== movieId);
+  localStorage.setItem('seenMovies', JSON.stringify(seen));
+}
+
+function isMovieSeen(movieId) {
+  return getSeenList().some(m => m.id === movieId);
+}
+
+document.getElementById('menu-icon').addEventListener('click', () => {
+  document.getElementById('menu-dropdown').classList.toggle('hidden');
+});
+
+let allLanguages = [];
+let trendLanguage = '';
+let trendType = 'all';
+
+async function loadLanguages() {
+  const res = await fetch(`https://api.themoviedb.org/3/configuration/languages?api_key=${API_KEY}`);
+  const data = await res.json();
+  allLanguages = data.sort((a, b) => a.english_name.localeCompare(b.english_name));
+}
+
+loadLanguages();
+
+document.getElementById('trend-language-input').addEventListener('input', (e) => {
+  const query = e.target.value.trim().toLowerCase();
+  const dropdown = document.getElementById('trend-lang-dropdown');
+
+  if (query.length === 0) {
+    trendLanguage = '';
+    dropdown.classList.add('hidden');
+    loadTrending();
+    return;
+  }
+
+  const filtered = allLanguages.filter(lang =>
+    lang.english_name.toLowerCase().startsWith(query) ||
+    lang.english_name.toLowerCase().includes(query)
+  ).slice(0, 8);
+
+  if (!filtered.length) {
+    dropdown.classList.add('hidden');
+    return;
+  }
+
+  dropdown.innerHTML = filtered.map(lang => `
+    <div class="dropdown-item" data-code="${lang.iso_639_1}" data-name="${lang.english_name}">
+      ${lang.english_name}
+    </div>
+  `).join('');
+
+  dropdown.classList.remove('hidden');
+
+  dropdown.querySelectorAll('.dropdown-item').forEach(item => {
+    item.addEventListener('click', () => {
+      trendLanguage = item.dataset.code;
+      document.getElementById('trend-language-input').value = item.dataset.name;
+      dropdown.classList.add('hidden');
+      loadTrending();
+    });
+  });
+});
+
+document.querySelectorAll('.trend-type-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.trend-type-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    trendType = btn.dataset.type;
+    loadTrending();
+  });
+});
+
+async function loadTrending() {
+  const mediaType = trendType === 'all' ? 'all' : trendType;
+  const langFilter = trendLanguage ? `&with_original_language=${trendLanguage}` : '';
+  const container = document.getElementById('trending-container');
+
+  container.innerHTML = `
+    <div class="skeleton-card"></div>
+    <div class="skeleton-card"></div>
+    <div class="skeleton-card"></div>
+  `;
+
+  const res = await fetch(`https://api.themoviedb.org/3/trending/${mediaType}/week?api_key=${API_KEY}${langFilter}`);
+  const data = await res.json();
+  const movies = (data.results || []).slice(0, 10);
+
+  container.innerHTML = '';
+  movies.forEach((movie, index) => {
+    const card = document.createElement('div');
+    card.classList.add('movie-card');
+    card.style.backgroundColor = '#1a1a1a';
+    card.style.borderColor = '#f5c518';
+    card.style.color = '#f5c518';
+    card.style.setProperty('--glow-color', '#f5c518');
+    card.style.opacity = '0';
+    card.style.transform = 'translateY(30px)';
+    card.style.transition = `opacity 0.4s ease ${index * 0.1}s, transform 0.4s ease ${index * 0.1}s`;
+
+    card.innerHTML = `
+      <div class="card-image-wrapper">
+        <img src="https://image.tmdb.org/t/p/w500${movie.poster_path}"
+          alt="${movie.title || movie.name}"
+          loading="lazy"
+          style="opacity:0; transition:opacity 0.4s ease;"
+          onload="this.style.opacity='1'" />
+        <div class="card-overlay"><span>See More</span></div>
+      </div>
+      <div class="card-info">
+        <h2>${movie.title || movie.name}</h2>
+        <p class="card-genre">${movie.genre_ids?.slice(0,2).map(id => GENRE_NAMES[id] || '').join(', ')}</p>
+        <p class="card-rating">${movie.vote_average.toFixed(1)} ⭐</p>
+        <button class="seen-btn ${isMovieSeen(movie.id) ? 'seen-active' : ''}" data-id="${movie.id}">
+          ${isMovieSeen(movie.id) ? '✓ Seen' : '+ Mark as Seen'}
+        </button>
+      </div>
+    `;
+
+    card.addEventListener('click', () => {
+      const colors = PLATFORM_COLORS['Netflix'];
+      openMoviePage(movie, 'Netflix', colors, movie.media_type || trendType);
+    });
+
+    container.appendChild(card);
+    setTimeout(() => {
+      card.style.opacity = '1';
+      card.style.transform = 'translateY(0)';
+    }, 50);
+  });
+
+  document.querySelectorAll('#trending-container .seen-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const movieId = parseInt(btn.dataset.id);
+      const movie = movies.find(m => m.id === movieId);
+      if (isMovieSeen(movieId)) {
+        removeFromSeen(movieId);
+        btn.textContent = '+ Mark as Seen';
+        btn.classList.remove('seen-active');
+      } else {
+        addToSeen(movie);
+        btn.textContent = '✓ Seen';
+        btn.classList.add('seen-active');
+      }
+    });
+  });
+}
+
+document.getElementById('trending-btn').addEventListener('click', async () => {
+  document.getElementById('menu-dropdown').classList.add('hidden');
+  showStep('trending-page');
+  loadTrending();
+});
+
+document.getElementById('trending-back-btn').addEventListener('click', () => {
+  showStep('step-1');
+});
+
+function loadWatchlist() {
+  const seen = getSeenList();
+  const container = document.getElementById('watchlist-container');
+
+  if (seen.length === 0) {
+    container.innerHTML = `<p style="opacity:0.6; letter-spacing:2px; font-family:'Segoe UI',sans-serif; color:#f5c518;">No movies marked as seen yet.</p>`;
+    return;
+  }
+
+  container.innerHTML = '';
+  seen.forEach(movie => {
+    const card = document.createElement('div');
+    card.classList.add('watchlist-card');
+    card.innerHTML = `
+      <img src="https://image.tmdb.org/t/p/w300${movie.poster}"
+        alt="${movie.title}"
+        onload="this.style.opacity='1'" />
+      <h3>${movie.title}</h3>
+      <p>${movie.genres || ''}</p>
+      <button class="remove-btn" data-id="${movie.id}">Remove</button>
+    `;
+    container.appendChild(card);
+  });
+
+  document.querySelectorAll('.remove-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      removeFromSeen(parseInt(btn.dataset.id));
+      loadWatchlist();
+    });
+  });
+}
+
+document.getElementById('watchlist-btn').addEventListener('click', () => {
+  document.getElementById('menu-dropdown').classList.add('hidden');
+  showStep('watchlist-page');
+  loadWatchlist();
+});
+
+document.getElementById('watchlist-back-btn').addEventListener('click', () => {
+  showStep('step-1');
+});
+
+document.getElementById('export-btn').addEventListener('click', () => {
+  const seen = getSeenList();
+  const blob = new Blob([JSON.stringify({ seen }, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'watchyourmood-watchlist.json';
+  a.click();
+  URL.revokeObjectURL(url);
+});
+
+document.getElementById('import-input').addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (event) => {
+    try {
+      const data = JSON.parse(event.target.result);
+      if (data.seen && Array.isArray(data.seen)) {
+        localStorage.setItem('seenMovies', JSON.stringify(data.seen));
+        loadWatchlist();
+        alert('Watchlist imported successfully!');
+      }
+    } catch {
+      alert('Invalid file format.');
+    }
+  };
+  reader.readAsText(file);
 });
