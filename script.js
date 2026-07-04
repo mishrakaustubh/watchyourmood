@@ -264,7 +264,10 @@ async function displayMovies(movies) {
       </div>
     `;
 
-    card.addEventListener('click', () => openMoviePage(movie, platform, colors, mediaType));
+    card.addEventListener('click', () => {
+  previousPage = 'results';
+  openMoviePage(movie, platform, colors, mediaType);
+});
     cards.push(card);
   }
 
@@ -367,6 +370,7 @@ document.querySelectorAll('.back-btn').forEach(btn => {
   });
 });
 
+let previousPage = 'results';
 async function openMoviePage(movie, platform, colors, mediaType) {
   const page = document.getElementById('movie-page');
   page.style.background = '';
@@ -446,7 +450,7 @@ document.getElementById('movie-back-btn').addEventListener('click', () => {
   document.getElementById('movie-page').classList.add('hidden');
   document.querySelector('.top-nav').style.display = 'flex';
   document.querySelector('.divider').style.display = 'block';
-  showStep('results');
+  showStep(previousPage);
 });
 
 function openLightbox(src) {
@@ -856,54 +860,52 @@ document.getElementById('menu-icon').addEventListener('click', () => {
 });
 
 let allLanguages = [];
-let trendLanguage = '';
-let trendType = 'all';
+let trendLanguage = 'en';
+let trendType = 'movie';
 
 async function loadLanguages() {
   const res = await fetch(`https://api.themoviedb.org/3/configuration/languages?api_key=${API_KEY}`);
   const data = await res.json();
-  allLanguages = data.sort((a, b) => a.english_name.localeCompare(b.english_name));
+  allLanguages = data
+    .filter(l => l.english_name)
+    .sort((a, b) => a.english_name.localeCompare(b.english_name));
+  renderLangOptions('');
 }
 
-loadLanguages();
+function renderLangOptions(query) {
+  const filtered = query 
+    ? allLanguages.filter(l => l.english_name.toLowerCase().includes(query.toLowerCase()))
+    : allLanguages;
 
-document.getElementById('trend-language-input').addEventListener('input', (e) => {
-  const query = e.target.value.trim().toLowerCase();
-  const dropdown = document.getElementById('trend-lang-dropdown');
-
-  if (query.length === 0) {
-    trendLanguage = '';
-    dropdown.classList.add('hidden');
-    loadTrending();
-    return;
-  }
-
-  const filtered = allLanguages.filter(lang =>
-    lang.english_name.toLowerCase().startsWith(query) ||
-    lang.english_name.toLowerCase().includes(query)
-  ).slice(0, 8);
-
-  if (!filtered.length) {
-    dropdown.classList.add('hidden');
-    return;
-  }
-
-  dropdown.innerHTML = filtered.map(lang => `
-    <div class="dropdown-item" data-code="${lang.iso_639_1}" data-name="${lang.english_name}">
+  document.getElementById('lang-options').innerHTML = filtered.map(lang => `
+    <div class="lang-option ${lang.iso_639_1 === trendLanguage ? 'active' : ''}" 
+         data-code="${lang.iso_639_1}" 
+         data-name="${lang.english_name}">
       ${lang.english_name}
     </div>
   `).join('');
 
-  dropdown.classList.remove('hidden');
-
-  dropdown.querySelectorAll('.dropdown-item').forEach(item => {
-    item.addEventListener('click', () => {
-      trendLanguage = item.dataset.code;
-      document.getElementById('trend-language-input').value = item.dataset.name;
-      dropdown.classList.add('hidden');
+  document.querySelectorAll('.lang-option').forEach(option => {
+    option.addEventListener('click', () => {
+      trendLanguage = option.dataset.code;
+      document.getElementById('lang-selected-text').textContent = option.dataset.name;
+      document.getElementById('lang-dropdown').classList.add('hidden');
+      document.getElementById('lang-search').value = '';
+      renderLangOptions('');
       loadTrending();
     });
   });
+}
+
+document.getElementById('lang-selected').addEventListener('click', () => {
+  document.getElementById('lang-dropdown').classList.toggle('hidden');
+  if (!document.getElementById('lang-dropdown').classList.contains('hidden')) {
+    document.getElementById('lang-search').focus();
+  }
+});
+
+document.getElementById('lang-search').addEventListener('input', (e) => {
+  renderLangOptions(e.target.value.trim());
 });
 
 document.querySelectorAll('.trend-type-btn').forEach(btn => {
@@ -916,8 +918,6 @@ document.querySelectorAll('.trend-type-btn').forEach(btn => {
 });
 
 async function loadTrending() {
-  const mediaType = trendType === 'all' ? 'all' : trendType;
-  const langFilter = trendLanguage ? `&with_original_language=${trendLanguage}` : '';
   const container = document.getElementById('trending-container');
 
   container.innerHTML = `
@@ -926,21 +926,43 @@ async function loadTrending() {
     <div class="skeleton-card"></div>
   `;
 
-  const res = await fetch(`https://api.themoviedb.org/3/trending/${mediaType}/week?api_key=${API_KEY}${langFilter}`);
+  const url = `https://api.themoviedb.org/3/discover/${trendType}?api_key=${API_KEY}&with_original_language=${trendLanguage}&sort_by=popularity.desc&page=1`;
+
+  const res = await fetch(url);
   const data = await res.json();
   const movies = (data.results || []).slice(0, 10);
 
   container.innerHTML = '';
-  movies.forEach((movie, index) => {
+
+  for (const movie of movies) {
+    const releaseDate = new Date(movie.release_date || movie.first_air_date);
+    const today = new Date();
+    const daysSinceRelease = (today - releaseDate) / (1000 * 60 * 60 * 24);
+    const inCinemas = daysSinceRelease < 45;
+
+    let finalPlatform, colors;
+
+    if (inCinemas) {
+      finalPlatform = 'In Cinemas';
+      colors = { bg: '#0d0d0d', text: '#f5c518', border: '#f5c518' };
+    } else {
+      finalPlatform = await getStreamingPlatform(movie.id, trendType);
+      colors = PLATFORM_COLORS[finalPlatform] || PLATFORM_COLORS['Netflix'];
+    }
+
     const card = document.createElement('div');
     card.classList.add('movie-card');
-    card.style.backgroundColor = '#1a1a1a';
-    card.style.borderColor = '#f5c518';
-    card.style.color = '#f5c518';
-    card.style.setProperty('--glow-color', '#f5c518');
+    if (colors.bg.includes('gradient')) {
+      card.style.background = colors.bg;
+    } else {
+      card.style.backgroundColor = colors.bg;
+    }
+    card.style.borderColor = colors.border;
+    card.style.color = colors.text;
+    card.style.setProperty('--glow-color', colors.border);
     card.style.opacity = '0';
     card.style.transform = 'translateY(30px)';
-    card.style.transition = `opacity 0.4s ease ${index * 0.1}s, transform 0.4s ease ${index * 0.1}s`;
+    card.style.transition = `opacity 0.4s ease ${movies.indexOf(movie) * 0.1}s, transform 0.4s ease ${movies.indexOf(movie) * 0.1}s`;
 
     card.innerHTML = `
       <div class="card-image-wrapper">
@@ -955,6 +977,7 @@ async function loadTrending() {
         <h2>${movie.title || movie.name}</h2>
         <p class="card-genre">${movie.genre_ids?.slice(0,2).map(id => GENRE_NAMES[id] || '').join(', ')}</p>
         <p class="card-rating">${movie.vote_average.toFixed(1)} ⭐</p>
+        <span class="platform-badge">${finalPlatform}</span>
         <button class="seen-btn ${isMovieSeen(movie.id) ? 'seen-active' : ''}" data-id="${movie.id}">
           ${isMovieSeen(movie.id) ? '✓ Seen' : '+ Mark as Seen'}
         </button>
@@ -962,8 +985,8 @@ async function loadTrending() {
     `;
 
     card.addEventListener('click', () => {
-      const colors = PLATFORM_COLORS['Netflix'];
-      openMoviePage(movie, 'Netflix', colors, movie.media_type || trendType);
+      previousPage = 'trending-page';
+      openMoviePage(movie, finalPlatform, colors, trendType);
     });
 
     container.appendChild(card);
@@ -971,7 +994,7 @@ async function loadTrending() {
       card.style.opacity = '1';
       card.style.transform = 'translateY(0)';
     }, 50);
-  });
+  }
 
   document.querySelectorAll('#trending-container .seen-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
@@ -994,12 +1017,15 @@ async function loadTrending() {
 document.getElementById('trending-btn').addEventListener('click', async () => {
   document.getElementById('menu-dropdown').classList.add('hidden');
   showStep('trending-page');
+  await loadLanguages();
   loadTrending();
 });
 
 document.getElementById('trending-back-btn').addEventListener('click', () => {
   showStep('step-1');
 });
+
+loadLanguages();
 
 function loadWatchlist() {
   const seen = getSeenList();

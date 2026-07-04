@@ -181,18 +181,24 @@
     <div id="movie-trailer"></div>
   </div>
 </div>
-
 <!-- TRENDING PAGE -->
 <div class="step hidden" id="trending-page">
   <h1>Trending Now</h1>
   <div class="trending-controls">
     <div class="trend-lang-wrapper">
-      <input type="text" id="trend-language-input" placeholder="🌐 All Languages..." autocomplete="off" class="trend-lang-input"/>
-      <div id="trend-lang-dropdown" class="hidden"></div>
+      <div class="custom-select" id="lang-select">
+        <div class="custom-select-selected" id="lang-selected">
+          <span id="lang-selected-text">English</span>
+          <i class="fa-solid fa-chevron-down" style="font-size:0.8rem;"></i>
+        </div>
+        <div class="custom-select-dropdown hidden" id="lang-dropdown">
+          <input type="text" id="lang-search" placeholder="Type to search..." class="lang-search-input" autocomplete="off"/>
+          <div id="lang-options"></div>
+        </div>
+      </div>
     </div>
     <div class="trend-type-toggle">
-      <button class="trend-type-btn active" data-type="all">All</button>
-      <button class="trend-type-btn" data-type="movie">Movies</button>
+      <button class="trend-type-btn active" data-type="movie">Movies</button>
       <button class="trend-type-btn" data-type="tv">Series</button>
     </div>
   </div>
