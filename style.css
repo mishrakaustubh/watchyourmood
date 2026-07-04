@@ -773,8 +773,8 @@ p {
 
 #platform-filter {
   position: absolute;
-  top: 140px;
-  right: 190px;
+  top: 350px;
+  right: 175px;
 }
 
 #platform-filter.hidden {

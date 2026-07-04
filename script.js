@@ -1,3 +1,6 @@
+const platformSeenIds = new Set();
+let starModeRetryCount = 0;
+
 document.querySelector('#step-1 h1').textContent = getGreeting();
 
 const GENRE_MAP = {
@@ -527,6 +530,8 @@ document.getElementById('search-input-field').addEventListener('input', async (e
         userSelection.actorId = item.dataset.id;
         userSelection.actorName = item.dataset.name;
         userSelection.starMode = true;
+        starModeRetryCount = 0;
+platformSeenIds.clear();
         userSelection.mood = 'intense';
         userSelection.language = 'any';
         userSelection.type = 'any';
@@ -731,43 +736,44 @@ async function fetchMoviesForPlatform(platformId) {
   let matched = [];
   let attempts = 0;
   const seen = new Set();
+  const maxAttempts = userSelection.starMode ? 1 : 5;
 
-  // generate 5 unique random pages between 1-10
   const pages = [];
-if (userSelection.starMode) {
-  for (let i = 1; i <= 5; i++) pages.push(i);
-} else {
-  while (pages.length < 5) {
-    const p = Math.floor(Math.random() * 10) + 1;
-    if (!pages.includes(p)) pages.push(p);
+  if (userSelection.starMode) {
+    pages.push(1);
+  } else {
+    while (pages.length < 5) {
+      const p = Math.floor(Math.random() * 10) + 1;
+      if (!pages.includes(p)) pages.push(p);
+    }
   }
-}
 
   for (const page of pages) {
     if (matched.length >= 3) break;
 
-    const sortMethods = ['popularity.desc', 'vote_average.desc', 'revenue.desc', 'release_date.desc'];
-const randomSort = sortMethods[Math.floor(Math.random() * sortMethods.length)];
+    const url = userSelection.starMode
+      ? `https://api.themoviedb.org/3/person/${userSelection.actorId}/movie_credits?api_key=${API_KEY}`
+      : `https://api.themoviedb.org/3/discover/${mediaType}?api_key=${API_KEY}${genreFilter}&primary_release_date.gte=${era.gte}&primary_release_date.lte=${era.lte}${language}&sort_by=popularity.desc&page=${page}${keywords}${castFilter}`;
 
-const url = userSelection.starMode 
-  ? `https://api.themoviedb.org/3/discover/${mediaType}?api_key=${API_KEY}${genreFilter}&primary_release_date.gte=${era.gte}&primary_release_date.lte=${era.lte}${language}&sort_by=${randomSort}&page=${page}${keywords}${castFilter}`
-  : `https://api.themoviedb.org/3/discover/${mediaType}?api_key=${API_KEY}${genreFilter}&primary_release_date.gte=${era.gte}&primary_release_date.lte=${era.lte}${language}&sort_by=popularity.desc&page=${page}${keywords}${castFilter}`;
-    
     const res = await fetch(url);
     const data = await res.json();
-    const movies = (data.results || []).sort(() => Math.random() - 0.5);
+
+    const movies = userSelection.starMode
+      ? (data.cast || []).filter(m => m.poster_path).sort(() => Math.random() - 0.5)
+      : (data.results || []).sort(() => Math.random() - 0.5);
 
     for (const movie of movies) {
       if (matched.length >= 3) break;
-      if (seen.has(movie.id)) continue;
+      if (seen.has(movie.id) || platformSeenIds.has(movie.id)) continue;
       seen.add(movie.id);
       const platform = await getStreamingPlatform(movie.id, mediaType);
-      console.log(movie.title || movie.name, '→', platform);
       if (platform === targetPlatformName) {
         matched.push(movie);
+        platformSeenIds.add(movie.id);
       }
     }
     attempts++;
+    if (attempts >= maxAttempts) break;
   }
 
   return matched.sort(() => Math.random() - 0.5);
