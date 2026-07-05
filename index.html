@@ -82,6 +82,10 @@
         <span class="progress-text">2/4 — TYPE</span>
         <h1>Movie or Series?</h1>
         <p>What are you in the mood for?</p>
+        <div class="horror-disclaimer hidden" id="horror-disclaimer">
+  <i class="fa-solid fa-circle-info"></i>
+    <p>Horror <span style="color:#f5c518;">series</span> selection is still being refined. You may see unexpected results — we're working on it!</p>
+</div>
         <div class="mood-container">
           <button class="mood-btn" data-type="movie">Movie</button>
           <button class="mood-btn" data-type="series">Series</button>
@@ -91,22 +95,23 @@
       </div>
 
       <div class="step hidden" id="step-3">
-        <span class="progress-text">3/4 — LANGUAGE</span>
-        <h1>Pick a Language</h1>
-        <p>Any preference?</p>
-        <div class="mood-container">
-          <button class="mood-btn" data-lang="en">English</button>
-          <button class="mood-btn" data-lang="hi">Hindi</button>
-          <button class="mood-btn" data-lang="te">Telugu</button>
-          <button class="mood-btn" data-lang="ta">Tamil</button>
-          <button class="mood-btn" data-lang="kn">Kannada</button>
-          <button class="mood-btn" data-lang="ja">Japanese</button>
-          <button class="mood-btn" data-lang="ko">Korean</button>
-          <button class="mood-btn" data-lang="any">Any</button>
-        </div>
-        <button class="back-btn" data-target="step-2">← Back</button>
+  <span class="progress-text">3/4 — LANGUAGE</span>
+  <h1>Pick a Language</h1>
+  <p>Any preference?</p>
+  <div class="lang-select-wrapper">
+    <div class="custom-select" id="step-lang-select">
+      <div class="custom-select-selected" id="step-lang-selected">
+        <span id="step-lang-selected-text">Any Language</span>
+        <i class="fa-solid fa-chevron-down" style="font-size:0.8rem;"></i>
       </div>
-
+      <div class="custom-select-dropdown hidden" id="step-lang-dropdown">
+        <input type="text" id="step-lang-search" placeholder="Type to search..." class="lang-search-input" autocomplete="off"/>
+        <div id="step-lang-options"></div>
+      </div>
+    </div>
+  </div>
+  <button class="back-btn" data-target="step-2">← Back</button>
+</div>
 
       <div class="step hidden" id="step-4">
         <span class="progress-text">4/4 — ERA</span>
@@ -208,6 +213,30 @@
 <!-- WATCHLIST PAGE -->
 <div class="step hidden" id="watchlist-page">
   <h1>My Watchlist</h1>
+  <div class="watchlist-disclaimer">
+  <i class="fa-solid fa-circle-info"></i>
+  <p>Your watchlist is saved on this browser. Switching browsers or devices? Click <strong>Export</strong> to download your list, then <strong>Import</strong> it on your new browser to restore everything. Keep on watching!</p>
+</div>
+<div class="transfer-guide">
+  <div class="transfer-guide-header" id="transfer-guide-toggle">
+    <i class="fa-solid fa-chevron-right" id="transfer-chevron"></i>
+    <span>How to transfer your watchlist?</span>
+  </div>
+  <div class="transfer-guide-content hidden" id="transfer-guide-content">
+    <div class="transfer-step">
+      <span class="transfer-step-num">1</span>
+      <p>Click <strong>Export</strong> on your current browser — a file will be downloaded to your device.</p>
+    </div>
+    <div class="transfer-step">
+      <span class="transfer-step-num">2</span>
+      <p>Open WatchYourMood on your new browser or device.</p>
+    </div>
+    <div class="transfer-step">
+      <span class="transfer-step-num">3</span>
+      <p>Click <strong>Import</strong> and select the file you downloaded. Your watchlist will be restored instantly.</p>
+    </div>
+  </div>
+</div>
   <div class="watchlist-controls">
     <button class="watchlist-action-btn" id="export-btn">
       <i class="fa-solid fa-download"></i> Export

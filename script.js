@@ -8,7 +8,7 @@ const GENRE_MAP = {
   emotional: [99, 18, 10749, 10751],
   intense: [28, 12, 80, 53, 10752, 10759, 9648, 10768, 878],
   chill: [16, 14, 10765, 10767, 10749, 10751],
-  horror: [27, 9648]
+  horror: [27, 9648, 10765]
 };
 
 const GENRE_NAMES = {
@@ -60,6 +60,12 @@ function showStep(stepId) {
 document.querySelectorAll('.mood-btn[data-mood]').forEach(btn => {
   btn.addEventListener('click', () => {
     userSelection.mood = btn.dataset.mood;
+    const disclaimer = document.getElementById('horror-disclaimer');
+    if (btn.dataset.mood === 'horror') {
+      disclaimer.classList.remove('hidden');
+    } else {
+      disclaimer.classList.add('hidden');
+    }
     showStep('step-2');
   });
 });
@@ -68,13 +74,6 @@ document.querySelectorAll('.mood-btn[data-type]').forEach(btn => {
   btn.addEventListener('click', () => {
     userSelection.type = btn.dataset.type;
     showStep('step-3');
-  });
-});
-
-document.querySelectorAll('.mood-btn[data-lang]').forEach(btn => {
-  btn.addEventListener('click', () => {
-    userSelection.language = btn.dataset.lang;
-    showStep('step-4');
   });
 });
 
@@ -94,13 +93,22 @@ document.querySelector('.results-container').innerHTML = `
 });
 
 async function fetchMovies() {
-  const genres = userSelection.animeMode 
+  const isHorrorSeries = userSelection.mood === 'horror' && (userSelection.type === 'series' || userSelection.type === 'any');
+
+const genres = userSelection.animeMode 
   ? '16' 
   : userSelection.starMode 
     ? (userSelection.mood && userSelection.mood !== 'any' ? GENRE_MAP[userSelection.mood].join('|') : '')
-    : GENRE_MAP[userSelection.mood].join('|');
+    : isHorrorSeries
+  ? '27|9648|10765'
+  : GENRE_MAP[userSelection.mood].join('|');
 
-  const keywords = userSelection.animeMode ? '&with_keywords=210024' : '';
+const keywords = userSelection.animeMode 
+  ? '&with_keywords=210024' 
+  : isHorrorSeries 
+  ? `&without_genres=35,16,10762,10751,10767,10766${userSelection.language !== 'any' && userSelection.language !== 'en' ? '' : '&vote_average.gte=6&vote_count.gte=100'}` 
+  : '';
+
   const castFilter = userSelection.starMode 
   ? userSelection.searchType === 'director'
     ? `&with_crew=${userSelection.actorId}`
@@ -744,13 +752,23 @@ document.querySelectorAll('.platform-filter-btn').forEach(btn => {
 });
 
 async function fetchMoviesForPlatform(platformId) {
-  const genres = userSelection.animeMode 
-    ? '16' 
+  const isHorrorSeries = userSelection.mood === 'horror' && (userSelection.type === 'series' || userSelection.type === 'any');
+
+const genres = userSelection.animeMode 
+  ? '16' 
+  : isHorrorSeries
+    ? '27|9648|10765'
     : GENRE_MAP[userSelection.mood]?.join('|') || '';
+
+const keywords = userSelection.animeMode 
+  ? '&with_keywords=210024' 
+  : isHorrorSeries 
+  ? `&without_genres=35,16,10762,10751,10767,10766${userSelection.language !== 'any' && userSelection.language !== 'en' ? '' : '&vote_average.gte=6&vote_count.gte=100'}` 
+  : '';
+
   const era = ERA_MAP[userSelection.era];
   const language = userSelection.language === 'any' ? '' : `&with_original_language=${userSelection.language}`;
   const mediaType = userSelection.type === 'series' ? 'tv' : 'movie';
-  const keywords = userSelection.animeMode ? '&with_keywords=210024' : '';
   const castFilter = userSelection.starMode ? `&with_people=${userSelection.actorId}` : '';
   const genreFilter = genres ? `&with_genres=${genres}` : '';
 
@@ -1102,5 +1120,51 @@ function updateWatchlistBadge() {
     badge.classList.add('hidden');
   }
 }
+
+document.getElementById('transfer-guide-toggle').addEventListener('click', () => {
+  const content = document.getElementById('transfer-guide-content');
+  const chevron = document.getElementById('transfer-chevron');
+  content.classList.toggle('hidden');
+  chevron.classList.toggle('open');
+});
+
+function renderStepLangOptions(query) {
+  const anyOption = { iso_639_1: 'any', english_name: 'Any Language' };
+  const langs = [anyOption, ...allLanguages];
+  
+  const filtered = query
+    ? langs.filter(l => l.english_name.toLowerCase().includes(query.toLowerCase()))
+    : langs;
+
+  document.getElementById('step-lang-options').innerHTML = filtered.map(lang => `
+    <div class="lang-option" data-code="${lang.iso_639_1}" data-name="${lang.english_name}">
+      ${lang.english_name}
+    </div>
+  `).join('');
+
+  document.querySelectorAll('#step-lang-options .lang-option').forEach(option => {
+    option.addEventListener('click', () => {
+      userSelection.language = option.dataset.code;
+      document.getElementById('step-lang-selected-text').textContent = option.dataset.name;
+      document.getElementById('step-lang-dropdown').classList.add('hidden');
+      document.getElementById('step-lang-search').value = '';
+      renderStepLangOptions('');
+      showStep('step-4');
+    });
+  });
+}
+
+document.getElementById('step-lang-selected').addEventListener('click', () => {
+  const dropdown = document.getElementById('step-lang-dropdown');
+  dropdown.classList.toggle('hidden');
+  if (!dropdown.classList.contains('hidden')) {
+    renderStepLangOptions('');
+    document.getElementById('step-lang-search').focus();
+  }
+});
+
+document.getElementById('step-lang-search').addEventListener('input', (e) => {
+  renderStepLangOptions(e.target.value.trim());
+});
 
 updateWatchlistBadge();
