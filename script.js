@@ -844,19 +844,27 @@ function addToSeen(movie) {
     });
     localStorage.setItem('seenMovies', JSON.stringify(seen));
   }
+  updateWatchlistBadge();
 }
 
 function removeFromSeen(movieId) {
   const seen = getSeenList().filter(m => m.id !== movieId);
   localStorage.setItem('seenMovies', JSON.stringify(seen));
+  updateWatchlistBadge();
 }
 
 function isMovieSeen(movieId) {
   return getSeenList().some(m => m.id === movieId);
 }
 
-document.getElementById('menu-icon').addEventListener('click', () => {
-  document.getElementById('menu-dropdown').classList.toggle('hidden');
+document.getElementById('trending-icon').addEventListener('click', () => {
+  showStep('trending-page');
+  loadTrending();
+});
+
+document.getElementById('watchlist-icon').addEventListener('click', () => {
+  showStep('watchlist-page');
+  loadWatchlist();
 });
 
 let allLanguages = [];
@@ -935,20 +943,18 @@ async function loadTrending() {
   container.innerHTML = '';
 
   for (const movie of movies) {
+    const streamingPlatform = await getStreamingPlatform(movie.id, trendType);
+    const hasStreaming = PLATFORM_COLORS[streamingPlatform] !== undefined;
+
     const releaseDate = new Date(movie.release_date || movie.first_air_date);
-    const today = new Date();
-    const daysSinceRelease = (today - releaseDate) / (1000 * 60 * 60 * 24);
-    const inCinemas = daysSinceRelease < 45;
+const today = new Date();
+const daysSinceRelease = (today - releaseDate) / (1000 * 60 * 60 * 24);
+const inCinemas = daysSinceRelease >= 0 && daysSinceRelease < 37;
 
-    let finalPlatform, colors;
-
-    if (inCinemas) {
-      finalPlatform = 'In Cinemas';
-      colors = { bg: '#0d0d0d', text: '#f5c518', border: '#f5c518' };
-    } else {
-      finalPlatform = await getStreamingPlatform(movie.id, trendType);
-      colors = PLATFORM_COLORS[finalPlatform] || PLATFORM_COLORS['Netflix'];
-    }
+const finalPlatform = inCinemas ? 'In Cinemas' : streamingPlatform;
+const colors = inCinemas
+  ? { bg: '#0d0d0d', text: '#f5c518', border: '#f5c518' }
+  : PLATFORM_COLORS[streamingPlatform] || { bg: '#0d0d0d', text: '#f5c518', border: '#f5c518' };
 
     const card = document.createElement('div');
     card.classList.add('movie-card');
@@ -1014,13 +1020,6 @@ async function loadTrending() {
   });
 }
 
-document.getElementById('trending-btn').addEventListener('click', async () => {
-  document.getElementById('menu-dropdown').classList.add('hidden');
-  showStep('trending-page');
-  await loadLanguages();
-  loadTrending();
-});
-
 document.getElementById('trending-back-btn').addEventListener('click', () => {
   showStep('step-1');
 });
@@ -1059,12 +1058,6 @@ function loadWatchlist() {
   });
 }
 
-document.getElementById('watchlist-btn').addEventListener('click', () => {
-  document.getElementById('menu-dropdown').classList.add('hidden');
-  showStep('watchlist-page');
-  loadWatchlist();
-});
-
 document.getElementById('watchlist-back-btn').addEventListener('click', () => {
   showStep('step-1');
 });
@@ -1098,3 +1091,16 @@ document.getElementById('import-input').addEventListener('change', (e) => {
   };
   reader.readAsText(file);
 });
+
+function updateWatchlistBadge() {
+  const count = getSeenList().length;
+  const badge = document.getElementById('watchlist-badge');
+  if (count > 0) {
+    badge.textContent = count;
+    badge.classList.remove('hidden');
+  } else {
+    badge.classList.add('hidden');
+  }
+}
+
+updateWatchlistBadge();

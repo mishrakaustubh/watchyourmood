@@ -513,6 +513,11 @@ p {
   opacity: 1;
 }
 
+.menu-wrapper:hover .tooltip{
+  visibility: visible;
+  opacity: 1;
+}
+
 .logo {
   font-family: 'Bebas Neue', sans-serif;
   font-size: 1.5rem;
@@ -1077,6 +1082,24 @@ p {
   opacity: 0.7;
   color: #a89a3e;
   margin-bottom: 6px;
+}
+
+.watchlist-badge {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  background: #0d0d0d;
+  color: #f5c518;
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 0.7rem;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+  border: 1px solid #f5c518;
 }
 
 .remove-btn {
