@@ -60,6 +60,13 @@ function showStep(stepId) {
 document.querySelectorAll('.mood-btn[data-mood]').forEach(btn => {
   btn.addEventListener('click', () => {
     userSelection.mood = btn.dataset.mood;
+    
+    // reset language step
+    document.getElementById('step-lang-selected-text').textContent = 'Any Language';
+    document.getElementById('lang-next-btn').style.display = 'none';
+    document.getElementById('step-lang-search').value = '';
+    document.getElementById('step-lang-dropdown').classList.add('hidden');
+    
     const disclaimer = document.getElementById('horror-disclaimer');
     if (btn.dataset.mood === 'horror') {
       disclaimer.classList.remove('hidden');
@@ -324,7 +331,7 @@ async function displayMovies(movies) {
         btn.textContent = '+ Mark as Seen';
         btn.classList.remove('seen-active');
       } else {
-        addToSeen(movie);
+        addToSeen(movie, mediaType);
         btn.textContent = '✓ Seen';
         btn.classList.add('seen-active');
       }
@@ -850,7 +857,7 @@ function getSeenList() {
   return JSON.parse(localStorage.getItem('seenMovies') || '[]');
 }
 
-function addToSeen(movie) {
+function addToSeen(movie, mediaType) {
   const seen = getSeenList();
   if (!seen.find(m => m.id === movie.id)) {
     seen.push({
@@ -858,11 +865,12 @@ function addToSeen(movie) {
       title: movie.title || movie.name,
       poster: movie.poster_path,
       rating: movie.vote_average,
-      genres: movie.genre_ids?.slice(0,2).map(id => GENRE_NAMES[id] || '').filter(Boolean).join(', ')
+      genres: movie.genre_ids?.slice(0,2).map(id => GENRE_NAMES[id] || '').filter(Boolean).join(', '),
+      mediaType: mediaType
     });
     localStorage.setItem('seenMovies', JSON.stringify(seen));
+    updateWatchlistBadge();
   }
-  updateWatchlistBadge();
 }
 
 function removeFromSeen(movieId) {
@@ -1030,7 +1038,7 @@ const colors = inCinemas
         btn.textContent = '+ Mark as Seen';
         btn.classList.remove('seen-active');
       } else {
-        addToSeen(movie);
+        addToSeen(movie, mediaType);
         btn.textContent = '✓ Seen';
         btn.classList.add('seen-active');
       }
@@ -1044,17 +1052,25 @@ document.getElementById('trending-back-btn').addEventListener('click', () => {
 
 loadLanguages();
 
+let watchlistFilter = 'all';
+
 function loadWatchlist() {
   const seen = getSeenList();
   const container = document.getElementById('watchlist-container');
 
-  if (seen.length === 0) {
-    container.innerHTML = `<p style="opacity:0.6; letter-spacing:2px; font-family:'Segoe UI',sans-serif; color:#f5c518;">No movies marked as seen yet.</p>`;
+  const filtered = watchlistFilter === 'all' 
+    ? seen 
+    : seen.filter(m => m.mediaType === watchlistFilter);
+
+  if (filtered.length === 0) {
+    container.innerHTML = `<p style="opacity:0.6; letter-spacing:2px; font-family:'Segoe UI',sans-serif; color:#f5c518;">
+      ${watchlistFilter === 'all' ? 'Start making your watchlist — mark movies/series as seen!' : `No ${watchlistFilter === 'movie' ? 'movies' : 'series'} marked as seen yet.`}
+    </p>`;
     return;
   }
 
   container.innerHTML = '';
-  seen.forEach(movie => {
+  filtered.forEach(movie => {
     const card = document.createElement('div');
     card.classList.add('watchlist-card');
     card.innerHTML = `
@@ -1075,6 +1091,15 @@ function loadWatchlist() {
     });
   });
 }
+
+document.querySelectorAll('.watchlist-tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.watchlist-tab').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    watchlistFilter = tab.dataset.filter;
+    loadWatchlist();
+  });
+});
 
 document.getElementById('watchlist-back-btn').addEventListener('click', () => {
   showStep('step-1');
@@ -1142,16 +1167,19 @@ function renderStepLangOptions(query) {
     </div>
   `).join('');
 
-  document.querySelectorAll('#step-lang-options .lang-option').forEach(option => {
-    option.addEventListener('click', () => {
-      userSelection.language = option.dataset.code;
-      document.getElementById('step-lang-selected-text').textContent = option.dataset.name;
-      document.getElementById('step-lang-dropdown').classList.add('hidden');
-      document.getElementById('step-lang-search').value = '';
-      renderStepLangOptions('');
-      showStep('step-4');
-    });
+ document.querySelectorAll('#step-lang-options .lang-option').forEach(langOption => {
+  langOption.addEventListener('click', () => {
+    document.querySelectorAll('#step-lang-options .lang-option').forEach(o => o.classList.remove('active'));
+    langOption.classList.add('active');
+    userSelection.language = langOption.dataset.code;
+    document.getElementById('step-lang-selected-text').textContent = langOption.dataset.name;
+    document.getElementById('step-lang-dropdown').classList.add('hidden');
+    document.getElementById('step-lang-search').value = '';
+    const nextBtn = document.getElementById('lang-next-btn');
+nextBtn.style.display = 'block';
+nextBtn.style.animation = 'slideIn 0.3s ease forwards';
   });
+});
 }
 
 document.getElementById('step-lang-selected').addEventListener('click', () => {
@@ -1165,6 +1193,10 @@ document.getElementById('step-lang-selected').addEventListener('click', () => {
 
 document.getElementById('step-lang-search').addEventListener('input', (e) => {
   renderStepLangOptions(e.target.value.trim());
+});
+
+document.getElementById('lang-next-btn').addEventListener('click', () => {
+  showStep('step-4');
 });
 
 updateWatchlistBadge();

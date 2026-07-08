@@ -272,12 +272,9 @@ p {
 }
 
 .back-btn:hover {
-  background-color: #ffffff;
+  background-color: #ffffff !important;
+  color: #f5c518 !important;
   transform: scale(1.05);
-}
-
-.back-btn:hover {
-  color: #f5c518;
 }
 
 .step {
@@ -1309,4 +1306,60 @@ p {
   line-height: 1.6;
   margin: 0;
   text-align: left;
+}
+
+.step-nav-btns {
+  display: flex;
+  gap: 15px;
+  align-items: center;
+  margin-top: 30px;
+  justify-content: center;
+}
+
+.step-nav-btns .back-btn {
+  margin-top: 0;
+}
+.step-nav-btns .back-btn:hover {
+  background: #f5c518;
+  color: #0d0d0d;
+}
+
+#lang-next-btn {
+  margin-top: 0;
+  transition: all 0.2s ease;
+}
+
+@keyframes slideIn {
+  from { opacity: 0; transform: translateX(20px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+.watchlist-tabs {
+  display: flex;
+  gap: 0;
+  margin-bottom: 24px;
+  border-bottom: 2px solid #f5c518;
+}
+
+.watchlist-tab {
+  background: transparent;
+  color: #a89a3e;
+  border: none;
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 1rem;
+  letter-spacing: 2px;
+  padding: 10px 24px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+}
+
+.watchlist-tab.active {
+  color: #f5c518;
+  border-bottom: 2px solid #f5c518;
+}
+
+.watchlist-tab:hover {
+  color: #f5c518;
 }
