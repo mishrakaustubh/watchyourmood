@@ -804,11 +804,12 @@ p {
   position: absolute;
   right: 0;
   top: 110%;
-  background: #1a1a1a;
+  background: #1a1a1aab;
   border: 1px solid #f5c518;
   border-radius: 10px;
   overflow: hidden;
   z-index: 50;
+  backdrop-filter: blur(4px);
   min-width: 160px;
 }
 
@@ -1608,7 +1609,7 @@ p {
 #results{
     width:100%;
     position:relative;
-    padding-top:150px;
+    padding-top:69px;
 }
 
 #results-back-btn{
@@ -1659,9 +1660,10 @@ p {
     margin-top:18px;
     display:flex;
     justify-content:center;
-    align-items:flex-start;
+    align-items:stretch;
     gap:14px;
     flex-wrap:wrap;
+    flex-direction: row;
 }
 
   /* =========================
@@ -1670,13 +1672,13 @@ p {
   ========================= */
 
   .movie-card{
-    width:155px;
+    width:115px;
     border-width:2px;
     border-radius:10px;
   }
 
   .movie-card img{
-    min-height:225px;
+    min-height:0px;
   }
 
   .card-info{
@@ -1776,14 +1778,15 @@ p {
     flex-wrap:wrap;
     justify-content:center;
     gap:14px;
+    flex-direction: row;
   }
 
   #trending-container .movie-card{
-    width:155px;
+    width:115px;
   }
 
   #trending-container .movie-card img{
-    min-height:225px;
+    min-height:0px;
   }
 
   #trending-container .skeleton-card{
